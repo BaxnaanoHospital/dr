@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="so">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b6e4f">
+  <title>Dr. Chat - Baxnaano Hospital</title>
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Cs-company12/lab-baxnaano/main/images.png">
+  <style>
+    :root {
+      color-scheme: light;
+      --green: #0b6e4f;
+      --green-dark: #07543d;
+      --green-soft: #e8f5ef;
+      --ink: #172b25;
+      --muted: #718078;
+      --line: #e4ebe7;
+      --surface: #ffffff;
+      --page: #f2f6f4;
+      --danger: #b42318;
+      --shadow: 0 18px 55px rgba(18, 48, 37, .10);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; }
+    body {
+      overflow: hidden;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .58; }
+
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); }
+    .primary-btn, .soft-btn, .danger-btn {
+      min-height: 40px;
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-weight: 650;
+      transition: background .15s ease, transform .15s ease;
+    }
+    .primary-btn { background: var(--green); color: white; }
+    .primary-btn:hover { background: var(--green-dark); }
+    .soft-btn { background: #edf3f0; color: #244238; }
+    .soft-btn:hover { background: #e1ebe6; }
+    .danger-btn { background: #fff0ee; color: var(--danger); }
+    .primary-btn:active, .soft-btn:active, .danger-btn:active { transform: translateY(1px); }
+
+    /* Login */
+    #login-screen {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      overflow: auto;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(11, 110, 79, .12), transparent 28%),
+        radial-gradient(circle at 88% 88%, rgba(58, 145, 111, .10), transparent 26%),
+        var(--page);
+    }
+    .login-card {
+      width: min(100%, 410px);
+      padding: 32px;
+      border: 1px solid rgba(220, 231, 225, .9);
+      border-radius: 22px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .brand-mark {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 18px;
+      border-radius: 17px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 27px;
+    }
+    .login-card h1 { margin: 0; font-size: 23px; letter-spacing: -.5px; }
+    .login-card .intro { margin: 8px 0 24px; color: var(--muted); line-height: 1.55; }
+    .field { display: grid; gap: 7px; margin: 14px 0; }
+    .field label { font-size: 13px; font-weight: 700; color: #385148; }
+    .field input, .search-input, #message-input {
+      width: 100%;
+      border: 1px solid #d8e3dd;
+      border-radius: 11px;
+      outline: none;
+      background: #fff;
+      color: var(--ink);
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .field input { min-height: 46px; padding: 11px 13px; }
+    .field input:focus, .search-input:focus, #message-input:focus {
+      border-color: #55a586;
+      box-shadow: 0 0 0 3px rgba(11, 110, 79, .10);
+    }
+    #login-button { width: 100%; min-height: 46px; margin-top: 7px; }
+    #login-error { min-height: 20px; margin: 12px 0 0; color: var(--danger); font-size: 13px; }
+
+    /* Application shell */
+    #app { display: none; width: 100%; height: 100dvh; flex-direction: column; }
+    .topbar {
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 20px;
+      background: var(--green);
+      color: white;
+      box-shadow: 0 3px 14px rgba(13, 61, 44, .14);
+      z-index: 2;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      overflow: hidden;
+      border-radius: 12px;
+      background: rgba(255,255,255,.15);
+    }
+    .brand-icon img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    #hospital-title { display: block; font-size: 15px; font-weight: 750; }
+    #doctor-title { display: block; margin-top: 2px; color: rgba(255,255,255,.76); font-size: 12px; }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .top-actions .soft-btn { min-height: 38px; padding: 8px 12px; }
+
+    #main { display: flex; flex: 1; min-height: 0; padding: 16px; gap: 15px; }
+    #list-panel, #chat-panel {
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 5px 22px rgba(25, 55, 43, .04);
+      overflow: hidden;
+    }
+    #list-panel { display: flex; flex: 0 0 320px; flex-direction: column; }
+    .panel-heading { padding: 17px 17px 12px; border-bottom: 1px solid var(--line); }
+    .panel-heading h2 { margin: 0; font-size: 16px; }
+    .panel-heading p { margin: 5px 0 12px; color: var(--muted); font-size: 12px; }
+    .search-input { min-height: 40px; padding: 9px 12px; font-size: 13px; }
+    #patient-list { flex: 1; overflow: auto; overscroll-behavior: contain; }
+    .patient-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 13px 15px;
+      border: 0;
+      border-bottom: 1px solid #f0f4f2;
+      background: white;
+      text-align: left;
+      color: var(--ink);
+    }
+    .patient-item:hover { background: #f7faf8; }
+    .patient-item.selected { background: var(--green-soft); }
+    .patient-avatar {
+      width: 39px;
+      height: 39px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 13px;
+      background: #eef4f1;
+      color: var(--green);
+      font-size: 15px;
+      font-weight: 800;
+    }
+    .patient-copy { min-width: 0; flex: 1; }
+    .patient-name { display: block; overflow: hidden; font-size: 13px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+    .patient-detail { display: block; overflow: hidden; margin-top: 4px; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .unread-badge { flex: 0 0 auto; border-radius: 20px; padding: 3px 7px; background: #fff0dc; color: #a65a06; font-size: 10px; font-weight: 750; }
+    .empty-state { padding: 25px 16px; color: var(--muted); text-align: center; font-size: 13px; line-height: 1.5; }
+
+    #chat-panel { display: flex; flex: 1; flex-direction: column; }
+    #chat-header {
+      min-height: 67px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    #back-button { display: none; min-width: 38px; padding: 7px; }
+    .chat-person { min-width: 0; flex: 1; }
+    #patient-title { display: block; overflow: hidden; font-size: 14px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+    #patient-number { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+    #relay-message { padding: 10px 14px; border-bottom: 1px solid #f0e4c8; background: #fff9eb; color: #75531c; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    #thread {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 16px;
+      background: #f8faf9;
+      overscroll-behavior: contain;
+    }
+    .message {
+      width: fit-content;
+      max-width: min(78%, 620px);
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      border: 1px solid #e6ece8;
+      border-radius: 13px;
+      background: white;
+      box-shadow: 0 2px 5px rgba(15, 45, 32, .025);
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .message.outgoing { margin-left: auto; border-color: #d5e9df; background: #eaf6ef; }
+    .message-meta { display: block; margin-bottom: 5px; color: #78867f; font-size: 10px; }
+    .message img, .message video { display: block; max-width: 100%; max-height: 330px; margin-top: 8px; border-radius: 9px; }
+    .message audio { display: block; width: min(100%, 320px); margin-top: 8px; }
+    .file-link { display: inline-block; margin-top: 7px; color: #08734f; font-weight: 700; text-decoration: underline; }
+
+    #composer { padding: 13px 15px; border-top: 1px solid var(--line); background: white; }
+    .compose-row { display: flex; align-items: flex-end; gap: 9px; }
+    #message-input { min-height: 46px; max-height: 130px; resize: vertical; padding: 11px 12px; line-height: 1.4; }
+    #send-button { min-width: 82px; min-height: 46px; }
+    .tools-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+    .file-label { display: inline-flex; align-items: center; min-height: 35px; padding: 7px 10px; border-radius: 9px; background: #edf3f0; color: #244238; cursor: pointer; font-size: 12px; font-weight: 650; }
+    .file-label:hover { background: #e1ebe6; }
+    .file-label input { display: none; }
+    #record-button { min-height: 35px; padding: 7px 10px; font-size: 12px; }
+    #record-button.recording { background: #fff0ee; color: var(--danger); }
+    #file-status { min-width: 0; overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    #remove-file { min-height: 29px; padding: 4px 8px; font-size: 11px; }
+    #app-status { min-height: 18px; padding: 0 16px 8px; color: var(--muted); font-size: 11px; }
+    #app-status.error { color: var(--danger); }
+
+    @media (max-width: 760px) {
+      #main { padding: 9px; gap: 0; }
+      #list-panel, #chat-panel { border-radius: 13px; }
+      #list-panel { flex-basis: 285px; }
+      .topbar { min-height: 60px; padding: 8px 12px; }
+      #hospital-title { font-size: 13px; }
+    }
+    @media (max-width: 640px) {
+      #main { position: relative; padding: 8px; }
+      #list-panel, #chat-panel { width: 100%; flex: 1 1 100%; }
+      #main.chatting #list-panel { display: none; }
+      #main:not(.chatting) #chat-panel { display: none; }
+      #back-button { display: inline-flex; }
+      #thread { padding: 12px; }
+      .message { max-width: 88%; }
+      #composer { padding: 10px; }
+      .compose-row { gap: 7px; }
+      #send-button { min-width: 65px; padding-inline: 10px; }
+      .top-actions { gap: 5px; }
+      .top-actions .soft-btn { min-height: 35px; padding: 7px 9px; font-size: 12px; }
+      .login-card { padding: 25px 21px; }
+    }
+    @media (max-width: 380px) {
+      .brand-icon { width: 34px; height: 34px; }
+      #doctor-title { font-size: 10px; }
+      .top-actions .soft-btn { padding-inline: 7px; }
+      #message-input { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <section id="login-screen" aria-label="Gelitaanka dhakhtarka">
+    <div class="login-card">
+      <div class="brand-mark" aria-hidden="true">✚</div>
+      <h1>Baxnaano Hospital</h1>
+      <p class="intro">Dr. Chat — Gal si aad ula xiriirto bukaanadaada.</p>
+      <form id="login-form">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" placeholder="Tusaale: dr.harith" autocomplete="username" autocapitalize="none" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="Geli password-ka" autocomplete="current-password" required>
+        </div>
+        <button class="primary-btn" id="login-button" type="submit">Gal</button>
+        <p id="login-error" role="alert" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
+
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon"><img src="https://raw.githubusercontent.com/Cs-company12/lab-baxnaano/main/images.png" alt="Baxnaano Hospital logo"></div>
+        <div>
+          <span id="hospital-title">Baxnaano Hospital · Dr. Chat</span>
+          <span id="doctor-title">Nidaamka fariimaha bukaanada</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="soft-btn" id="add-number-button" type="button">+ Lambar</button>
+        <button class="soft-btn" id="logout-button" type="button">Ka bax</button>
+      </div>
+    </header>
+
+    <main id="main">
+      <aside id="list-panel" aria-label="Liiska bukaanada">
+        <div class="panel-heading">
+          <h2>Bukaanada</h2>
+          <p>Dooro bukaan si aad u aragto fariimihiisa.</p>
+          <input id="patient-search" class="search-input" type="search" placeholder="Raadi magac ama lambar..." aria-label="Raadi bukaan">
+        </div>
+        <div id="patient-list" aria-live="polite"></div>
+      </aside>
+
+      <section id="chat-panel" aria-label="Wadahadalka bukaanka">
+        <div id="chat-header">
+          <button class="soft-btn" id="back-button" type="button" aria-label="Ku noqo liiska">←</button>
+          <div class="chat-person">
+            <span id="patient-title">Dooro bukaan</span>
+            <span id="patient-number">Fariimaha bukaanka halkan ayay ka muuqanayaan</span>
+          </div>
+        </div>
+        <div id="relay-message" class="hidden"></div>
+        <div id="thread" aria-live="polite">
+          <div class="empty-state">Dooro bukaan ku jira liiska bidix si aad u bilowdo.</div>
+        </div>
+        <div id="composer" class="hidden">
+          <div class="compose-row">
+            <textarea id="message-input" rows="2" placeholder="Qor fariinta bukaanka..." aria-label="Qoraalka fariinta"></textarea>
+            <button class="primary-btn" id="send-button" type="button">Dir</button>
+          </div>
+          <div class="tools-row">
+            <label class="file-label">📎 PDF / Sawir / Cod / Video
+              <input id="file-input" type="file" accept="image/*,audio/*,video/*,application/pdf,.doc,.docx">
+            </label>
+            <button class="soft-btn" id="record-button" type="button">🎤 Duub cod</button>
+            <span id="file-status"></span>
+            <button class="danger-btn hidden" id="remove-file" type="button">Ka saar</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <div id="app-status" role="status" aria-live="polite"></div>
+  </div>
+
+  <script>
+    'use strict';
+
+    // Keep the existing Supabase project and RPC contract unchanged.
+    const SUPABASE_URL = 'https://tpmsyyhrnciqqcxlfamr.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_exzgU4lfqJpzI89f8Jjl7w_5vT2d4NR';
+    const MAX_FILE_SIZE = 15 * 1024 * 1024;
+    const POLL_INTERVAL_MS = 5000;
+
+    const $ = (id) => document.getElementById(id);
+    const doctorNames = {
+      harith: 'Dr. Harith',
+      yaxye: 'Dr. Yaxye',
+      sadia: 'Dr. Sadio',
+      hersi: 'Dr. Hersi',
+      saney: 'Dr. Saney'
+    };
+
+    let token = null;
+    let doctorKey = '';
+    let selectedNumber = null;
+    let selectedFile = null;
+    let mediaRecorder = null;
+    let recordingStream = null;
+    let patients = [];
+    let sending = false;
+    let loadingPromise = null;
+    let pollTimer = null;
+    let threadRequestId = 0;
+
+    function safeStorageGet(key, fallback = '') {
+      try { return localStorage.getItem(key) ?? fallback; }
+      catch { return fallback; }
+    }
+
+    function safeStorageSet(key, value) {
+      try { localStorage.setItem(key, value); return true; }
+      catch { return false; }
+    }
+
+    function safeStorageRemove(key) {
+      try { localStorage.removeItem(key); } catch { /* Storage may be disabled. */ }
+    }
+
+    token = safeStorageGet('dr_token', null);
+    doctorKey = safeStorageGet('dr_key', '');
+
+    function setStatus(message = '', isError = false) {
+      const status = $('app-status');
+      status.textContent = message;
+      status.classList.toggle('error', Boolean(isError));
+    }
+
+    function setLoginError(message = '') {
+      $('login-error').textContent = message;
+    }
+
+    function setBusy(button, busy, busyText, normalText) {
+      button.disabled = Boolean(busy);
+      button.textContent = busy ? busyText : normalText;
+    }
+
+    async function rpc(name, body) {
+      let response;
+      try {
+        response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${encodeURIComponent(name)}`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body),
+          cache: 'no-store'
+        });
+      } catch (error) {
+        throw new Error('Internet-ka lama xiriiri karo. Hubi xiriirkaaga.');
+      }
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = result?.message || result?.error || `HTTP ${response.status}`;
+        if (response.status === 401 || response.status === 403 || result?.error === 'auth') {
+          clearSession();
+          throw new Error('Fadhigaagu wuu dhammaaday. Fadlan mar kale soo gal.');
+        }
+        throw new Error(message);
+      }
+      if (result && result.error === 'auth') {
+        clearSession();
+        throw new Error('Fadhigaagu wuu dhammaaday. Fadlan mar kale soo gal.');
+      }
+      if (result && result.error) throw new Error(String(result.error));
+      return result;
+    }
+
+    function clearSession() {
+      token = null;
+      doctorKey = '';
+      selectedNumber = null;
+      patients = [];
+      stopPolling();
+      stopRecording();
+      safeStorageRemove('dr_token');
+      safeStorageRemove('dr_key');
+      $('app').style.display = 'none';
+      $('login-screen').style.display = 'grid';
+      $('password').value = '';
+      $('patient-list').replaceChildren();
+      $('thread').innerHTML = '<div class="empty-state">Dooro bukaan ku jira liiska bidix si aad u bilowdo.</div>';
+      $('composer').classList.add('hidden');
+      $('main').classList.remove('chatting');
+      clearSelectedFile();
+    }
+
+    async function login(event) {
+      event?.preventDefault();
+      if ($('login-button').disabled) return;
+      const username = $('username').value.trim();
+      const password = $('password').value;
+      if (!username || !password) {
+        setLoginError('Geli username iyo password.');
+        return;
+      }
+
+      setLoginError('');
+      setBusy($('login-button'), true, 'Waa la gelayaa...', 'Gal');
+      try {
+        const result = await rpc('dr_login', { p_user: username, p_pass: password });
+        if (!result?.token || !result?.key) throw new Error('Xogta gelitaanka oo sax ah lama helin.');
+        token = result.token;
+        doctorKey = result.key;
+        safeStorageSet('dr_token', token);
+        safeStorageSet('dr_key', doctorKey);
+        startApp();
+      } catch (error) {
+        setLoginError(error.message || 'Gelitaanka wuu fashilmay.');
+      } finally {
+        setBusy($('login-button'), false, 'Waa la gelayaa...', 'Gal');
+      }
+    }
+
+    async function logout() {
+      const button = $('logout-button');
+      button.disabled = true;
+      try {
+        if (token) await rpc('dr_logout', { p_token: token });
+      } catch (error) {
+        // Local session is cleared even if the network is unavailable.
+      } finally {
+        clearSession();
+        button.disabled = false;
+      }
+    }
+
+    function startApp() {
+      $('login-screen').style.display = 'none';
+      $('app').style.display = 'flex';
+      $('doctor-title').textContent = doctorNames[doctorKey] || 'Dhakhtar';
+      setStatus('Ku xiran yahay nidaamka.');
+      loadPatients();
+      startPolling();
+    }
+
+    function startPolling() {
+      stopPolling();
+      pollTimer = window.setInterval(() => {
+        if (!isComposerBusy()) loadPatients();
+      }, POLL_INTERVAL_MS);
+    }
+
+    function stopPolling() {
+      if (pollTimer !== null) window.clearInterval(pollTimer);
+      pollTimer = null;
+    }
+
+    function isComposerBusy() {
+      return Boolean(
+        mediaRecorder || selectedFile || sending || $('message-input').value.trim()
+      );
+    }
+
+    function getExtraNumbers() {
+      try {
+        const parsed = JSON.parse(safeStorageGet(`dx_${doctorKey}`, '[]'));
+        return Array.isArray(parsed) ? parsed.filter((n) => typeof n === 'string') : [];
+      } catch {
+        return [];
+      }
+    }
+
+    async function loadPatients() {
+      if (!token || loadingPromise) return loadingPromise;
+      loadingPromise = (async () => {
+        try {
+          const result = await rpc('dr_patients', { p_token: token });
+          if (!Array.isArray(result)) throw new Error('Liiska bukaanada lama akhrin karin.');
+          patients = result.filter((patient) => patient && patient.number != null);
+
+          getExtraNumbers().forEach((number) => {
+            if (!patients.some((patient) => String(patient.number) === number)) {
+              patients.push({ number, name: '', open: false });
+            }
+          });
+
+          renderPatientList();
+          if (selectedNumber) await loadThread(false);
+          setStatus('Xogta waa la cusboonaysiiyay.');
+        } catch (error) {
+          setStatus(error.message || 'Xogta lama cusboonaysiin.', true);
+        }
+      })();
+
+      try { await loadingPromise; }
+      finally { loadingPromise = null; }
+    }
+
+    function renderPatientList() {
+      const list = $('patient-list');
+      const search = $('patient-search').value.trim().toLowerCase();
+      const filtered = patients.filter((patient) => {
+        const name = String(patient.name || '').toLowerCase();
+        const number = String(patient.number || '').toLowerCase();
+        return name.includes(search) || number.includes(search);
+      });
+      list.replaceChildren();
+
+      if (!filtered.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = patients.length
+          ? 'Wax bukaan ah oo raadintaas ku habboon lama helin.'
+          : 'Weli bukaan fariin leh lama helin. Waxaad ku dari kartaa lambar cusub.';
+        list.append(empty);
+        return;
+      }
+
+      filtered.forEach((patient) => {
+        const number = String(patient.number);
+        const name = String(patient.name || number);
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = `patient-item${selectedNumber === number ? ' selected' : ''}`;
+        item.addEventListener('click', () => openPatient(number));
+
+        const avatar = document.createElement('span');
+        avatar.className = 'patient-avatar';
+        avatar.textContent = (name.trim()[0] || '#').toUpperCase();
+
+        const copy = document.createElement('span');
+        copy.className = 'patient-copy';
+        const patientName = document.createElement('span');
+        patientName.className = 'patient-name';
+        patientName.textContent = name;
+        const details = document.createElement('span');
+        details.className = 'patient-detail';
+        details.textContent = `${number}${patient.last ? ` · ${patient.last}` : ''}`;
+        copy.append(patientName, details);
+        item.append(avatar, copy);
+
+        if (patient.open) {
+          const badge = document.createElement('span');
+          badge.className = 'unread-badge';
+          badge.textContent = 'Cusub';
+          item.append(badge);
+        }
+        list.append(item);
+      });
+    }
+
+    function openPatient(number) {
+      selectedNumber = String(number);
+      clearSelectedFile();
+      $('message-input').value = '';
+      $('main').classList.add('chatting');
+      renderPatientList();
+      loadThread(true);
+    }
+
+    function goBackToPatients() {
+      $('main').classList.remove('chatting');
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toLocaleString();
+    }
+
+    function buildMedia(message) {
+      if (!message.file_url) return null;
+      const mime = String(message.file_mime || '').toLowerCase();
+      const url = String(message.file_url);
+
+      if (!/^https:\/\//i.test(url)) return null;
+
+      if (mime.startsWith('image/')) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        const image = document.createElement('img');
+        image.src = url;
+        image.alt = 'Sawirka la soo diray';
+        image.loading = 'lazy';
+        link.append(image);
+        return link;
+      }
+      if (mime.startsWith('audio/')) {
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.preload = 'none';
+        audio.src = url;
+        return audio;
+      }
+      if (mime.startsWith('video/')) {
+        const video = document.createElement('video');
+        video.controls = true;
+        video.preload = 'metadata';
+        video.src = url;
+        return video;
+      }
+
+      const link = document.createElement('a');
+      link.className = 'file-link';
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = `📄 ${String(message.file_name || 'Fur faylka')}`;
+      return link;
+    }
+
+    async function loadThread(forceScroll = false) {
+      const number = selectedNumber;
+      if (!number || !token) return;
+      const requestId = ++threadRequestId;
+      const thread = $('thread');
+      const wasAtBottom = thread.scrollTop + thread.clientHeight >= thread.scrollHeight - 45;
+
+      try {
+        const messages = await rpc('dr_thread', { p_token: token, p_number: number });
+        if (requestId !== threadRequestId || selectedNumber !== number) return;
+        if (!Array.isArray(messages)) throw new Error('Fariimaha lama akhrin karin.');
+
+        const patient = patients.find((item) => String(item.number) === number) || {};
+        $('patient-title').textContent = String(patient.name || number);
+        $('patient-number').textContent = number;
+        $('composer').classList.remove('hidden');
+        $('relay-message').textContent = String(patient.relay || '');
+        $('relay-message').classList.toggle('hidden', !patient.relay);
+
+        const fragment = document.createDocumentFragment();
+        if (!messages.length) {
+          const empty = document.createElement('div');
+          empty.className = 'empty-state';
+          empty.textContent = 'Wadahadalkan wali fariin kuma jirto.';
+          fragment.append(empty);
+        } else {
+          messages.forEach((message) => {
+            const bubble = document.createElement('article');
+            bubble.className = `message${message.dir === 'out' || (message.dir !== 'in' && message.dir !== 'bulk') ? ' outgoing' : ''}`;
+
+            const meta = document.createElement('small');
+            meta.className = 'message-meta';
+            const sender = message.dir === 'in' ? 'Bukaan'
+              : message.dir === 'out' ? 'Dr.'
+              : message.dir === 'bulk' ? 'Isbitaal' : '🤖 Bot';
+            meta.textContent = `${sender}${message.at ? ` · ${formatDate(message.at)}` : ''}${message.dir === 'out' && message.sent === false ? ' · Sugaya dirista' : ''}`;
+            bubble.append(meta);
+
+            if (message.text) {
+              const text = document.createElement('div');
+              text.textContent = String(message.text);
+              bubble.append(text);
+            }
+            const media = buildMedia(message);
+            if (media) bubble.append(media);
+            fragment.append(bubble);
+          });
+        }
+        thread.replaceChildren(fragment);
+        if (forceScroll || wasAtBottom) thread.scrollTop = thread.scrollHeight;
+      } catch (error) {
+        if (requestId === threadRequestId) setStatus(error.message || 'Fariimaha lama soo bandhigi karin.', true);
+      }
+    }
+
+    function addPatientNumber() {
+      const value = window.prompt('Lambarka bukaanka (2526XXXXXXXX ama 06XXXXXXXX):');
+      if (!value) return;
+      let number = value.replace(/\D/g, '');
+      if (number.length === 9 && number.startsWith('6')) number = `252${number}`;
+      else if (number.length === 10 && number.startsWith('0')) number = `252${number.slice(1)}`;
+      if (!/^252[0-9]{7,9}$/.test(number)) {
+        window.alert('Lambar sax ah geli. Tusaale: 2526XXXXXXXX ama 06XXXXXXXX.');
+        return;
+      }
+
+      const saved = getExtraNumbers();
+      if (!saved.includes(number)) {
+        saved.push(number);
+        safeStorageSet(`dx_${doctorKey}`, JSON.stringify(saved));
+      }
+      openPatient(number);
+      loadPatients();
+    }
+
+    function clearSelectedFile() {
+      selectedFile = null;
+      $('file-input').value = '';
+      $('file-status').textContent = '';
+      $('remove-file').classList.add('hidden');
+    }
+
+    function chooseFile(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (file.size > MAX_FILE_SIZE) {
+        window.alert('Faylku wuu ka weyn yahay 15MB.');
+        event.target.value = '';
+        return;
+      }
+      selectedFile = file;
+      $('file-status').textContent = `📎 ${file.name}`;
+      $('remove-file').classList.remove('hidden');
+      event.target.value = '';
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        try { mediaRecorder.stop(); } catch { /* Recorder may already be stopped. */ }
+      }
+      if (recordingStream) recordingStream.getTracks().forEach((track) => track.stop());
+      recordingStream = null;
+    }
+
+    async function toggleRecording() {
+      const button = $('record-button');
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+        window.alert('Browser-kan ma taageerayo duubista codka.');
+        return;
+      }
+
+      try {
+        recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const chunks = [];
+        mediaRecorder = new MediaRecorder(recordingStream);
+        mediaRecorder.addEventListener('dataavailable', (event) => {
+          if (event.data && event.data.size) chunks.push(event.data);
+        });
+        mediaRecorder.addEventListener('stop', () => {
+          const type = mediaRecorder?.mimeType || 'audio/webm';
+          const blob = new Blob(chunks, { type });
+          if (blob.size) {
+            selectedFile = new File([blob], 'cod.webm', { type: blob.type || 'audio/webm' });
+            $('file-status').textContent = '🎤 Cod diyaar ah — riix Dir';
+            $('remove-file').classList.remove('hidden');
+          }
+          if (recordingStream) recordingStream.getTracks().forEach((track) => track.stop());
+          recordingStream = null;
+          mediaRecorder = null;
+          button.textContent = '🎤 Duub cod';
+          button.classList.remove('recording');
+        }, { once: true });
+        mediaRecorder.start();
+        button.textContent = '⏹ Jooji duubista';
+        button.classList.add('recording');
+      } catch (error) {
+        stopRecording();
+        mediaRecorder = null;
+        button.textContent = '🎤 Duub cod';
+        button.classList.remove('recording');
+        window.alert(`Makarafoonka lama furi karo: ${error.message || 'Oggolaansho ma jiro.'}`);
+      }
+    }
+
+    function randomObjectId() {
+      if (crypto.randomUUID) return crypto.randomUUID().replace(/-/g, '');
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function uploadFile(file) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-60) || 'file';
+      const objectPath = `${randomObjectId()}/${safeName}`;
+      const response = await fetch(`${SUPABASE_URL}/storage/v1/object/dr-files/${objectPath.split('/').map(encodeURIComponent).join('/')}`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': file.type || 'application/octet-stream'
+        },
+        body: file
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.message || `Faylka lama gelin (HTTP ${response.status}).`);
+      }
+      // Keep the current public-bucket URL format for compatibility with dr_thread.
+      return `${SUPABASE_URL}/storage/v1/object/public/dr-files/${objectPath.split('/').map(encodeURIComponent).join('/')}`;
+    }
+
+    async function sendMessage() {
+      if (!selectedNumber || sending) return;
+      const text = $('message-input').value.trim();
+      const fileToSend = selectedFile;
+      if (!text && !fileToSend) return;
+
+      sending = true;
+      setBusy($('send-button'), true, 'Diraya...', 'Dir');
+      $('record-button').disabled = true;
+      try {
+        let fileUrl = null;
+        let fileMime = null;
+        let fileName = null;
+        if (fileToSend) {
+          setStatus('Faylka ayaa la gelinayaa...');
+          fileUrl = await uploadFile(fileToSend);
+          fileMime = fileToSend.type || 'application/octet-stream';
+          fileName = fileToSend.name;
+        }
+
+        await rpc('dr_send', {
+          p_token: token,
+          p_number: selectedNumber,
+          p_text: text,
+          p_url: fileUrl,
+          p_mime: fileMime,
+          p_name: fileName
+        });
+
+        $('message-input').value = '';
+        clearSelectedFile();
+        setStatus('Fariinta waa la gudbiyay.');
+        await loadPatients();
+        await loadThread(true);
+      } catch (error) {
+        setStatus(`Lama diri karin: ${error.message || 'Khalad ayaa dhacay.'}`, true);
+      } finally {
+        sending = false;
+        setBusy($('send-button'), false, 'Diraya...', 'Dir');
+        $('record-button').disabled = false;
+      }
+    }
+
+    $('login-form').addEventListener('submit', login);
+    $('logout-button').addEventListener('click', logout);
+    $('add-number-button').addEventListener('click', addPatientNumber);
+    $('back-button').addEventListener('click', goBackToPatients);
+    $('patient-search').addEventListener('input', renderPatientList);
+    $('file-input').addEventListener('change', chooseFile);
+    $('remove-file').addEventListener('click', clearSelectedFile);
+    $('record-button').addEventListener('click', toggleRecording);
+    $('send-button').addEventListener('click', sendMessage);
+    $('message-input').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    if (token && doctorKey) startApp();
+    else clearSession();
+  </script>
+</body>
+</html>
