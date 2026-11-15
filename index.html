@@ -333,6 +333,17 @@
     #thread { padding: 18px 16px; gap: 14px; }
     .message { padding: 12px 15px; border-radius: 16px; line-height: 1.5; box-shadow: 0 1px 3px rgba(20, 50, 40, .06); }
     #composer { padding: 14px 16px 16px; gap: 10px; }
+  
+    .audio-box { display: grid; gap: 6px; min-width: 230px; }
+    .audio-box audio { width: 100%; height: 42px; border-radius: 21px; }
+    .audio-fallback { font-size: 12px; font-weight: 700; color: var(--danger); text-decoration: none; background: #fff0ee; padding: 6px 10px; border-radius: 10px; }
+    .audio-fallback.hidden { display: none; }
+    #composer { padding-bottom: calc(16px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, #fff, #f7faf8); border-top: 1px solid var(--line); }
+    #message-input { border-radius: 16px; padding: 13px 15px; border: 1.5px solid var(--line); background: #fff; transition: border-color .15s, box-shadow .15s; }
+    #message-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 4px rgba(11, 110, 79, .12); }
+    #send-button { border-radius: 16px; min-width: 76px; box-shadow: 0 6px 16px rgba(11, 110, 79, .28); font-weight: 800; }
+    #composer .soft-btn { border-radius: 999px; padding: 9px 14px; }
+    #relay-message { white-space: pre-wrap; }
   </style>
 </head>
 <body>
@@ -777,9 +788,18 @@
       if (mime.startsWith('audio/')) {
         const audio = document.createElement('audio');
         audio.controls = true;
-        audio.preload = 'none';
+        audio.preload = 'metadata';
+        audio.setAttribute('playsinline', '');
         audio.src = url;
-        return audio;
+        const box = document.createElement('div');
+        box.className = 'audio-box';
+        const note = document.createElement('a');
+        note.className = 'audio-fallback hidden';
+        note.href = url; note.target = '_blank'; note.rel = 'noopener noreferrer';
+        note.textContent = '⬇ Codkan lama ciyaari karo halkan — riix si aad u dhegaysato';
+        audio.addEventListener('error', () => note.classList.remove('hidden'));
+        box.append(audio, note);
+        return box;
       }
       if (mime.startsWith('video/')) {
         const video = document.createElement('video');
@@ -878,7 +898,7 @@
         $('composer').classList.remove('hidden');
         $('edit-name-button').classList.remove('hidden');
         $('edit-name-button').textContent = patient.saved ? '✎ Magaca beddel' : '✎ Magac keydi';
-        $('relay-message').textContent = String(patient.relay || '').split('\n').map((x) => x.replace(/^[\s—-]+/, '').trim()).filter(Boolean).join('\n');
+        { const lines = String(patient.relay || '').split('\n').map((x) => x.replace(/^[\s—-]+/, '').trim()).filter(Boolean); $('relay-message').textContent = lines.length > 1 ? lines.map((x) => '• ' + x).join('\n') : lines.join(''); }
         $('relay-message').classList.toggle('hidden', !patient.relay);
         if (clinicFor !== number) { clinicFor = number; loadClinic(number); }
 
