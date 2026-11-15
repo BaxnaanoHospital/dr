@@ -204,10 +204,18 @@
     .chat-person { min-width: 0; flex: 1; }
     #patient-title { display: block; overflow: hidden; font-size: 14px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
     #patient-number { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
-    #clinic { border-bottom: 1px solid #e3ead9; background: #f6faf1; font-size: 13px; max-height: 42vh; overflow: auto; }
-    #clinic summary { cursor: pointer; padding: 9px 14px; font-weight: 700; color: #2f5a1f; list-style: none; }
+    #clinic { border-bottom: 1px solid #e3ead9; background: #f6faf1; font-size: 13px; max-height: 46vh; overflow: auto; flex: 0 0 auto; }
+    #clinic summary { cursor: pointer; padding: 8px 14px; font-weight: 700; color: #2f5a1f; list-style: none; display: flex; align-items: center; gap: 8px; min-height: 38px; }
+    #clinic .cl-title { white-space: nowrap; }
+    #clinic .cl-sum { flex: 1; min-width: 0; display: flex; gap: 5px; overflow: hidden; }
+    #clinic .cl-sum .cl-chip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+    #clinic .cl-arrow { transition: transform .15s; color: #6b7d60; }
+    #clinic[open] .cl-arrow { transform: rotate(180deg); }
+    #clinic .cl-old > summary { padding: 6px 2px; font-size: 12px; font-weight: 600; color: #5b6b52; min-height: 0; }
+    #clinic .cl-old { background: transparent; border-style: dashed; }
+    #clinic .cl-sec { display: grid; gap: 3px; }
     #clinic summary::-webkit-details-marker { display: none; }
-    #clinic .cl-body { padding: 0 14px 12px; display: grid; gap: 10px; }
+    #clinic .cl-body { padding: 2px 14px 14px; display: grid; gap: 12px; }
     #clinic .cl-pt { font-weight: 700; }
     #clinic .cl-visit { background: #fff; border: 1px solid #dde7d2; border-radius: 10px; padding: 9px 11px; display: grid; gap: 6px; }
     #clinic .cl-head { font-size: 12px; color: #5b6b52; }
@@ -357,7 +365,7 @@
           <button class="soft-btn hidden" id="edit-name-button" type="button">✎ Magac keydi</button>
         </div>
         <div id="relay-message" class="hidden"></div>
-        <details id="clinic" class="hidden" open><summary>🩺 Xogta bukaanka (Odoo)</summary><div class="cl-body" id="clinic-body"></div></details>
+        <details id="clinic" class="hidden"><summary><span class="cl-title">🩺 Xogta bukaanka</span><span class="cl-sum" id="clinic-sum"></span><span class="cl-arrow">▾</span></summary><div class="cl-body" id="clinic-body"></div></details>
         <div id="thread" aria-live="polite">
           <div class="empty-state">Dooro bukaan ku jira liiska bidix si aad u bilowdo.</div>
         </div>
@@ -762,30 +770,42 @@
     const fmtD = (v) => { const t = String(v || '').slice(0, 10); return t || ''; };
     function renderClinic(data) {
       const box = $('clinic-body'); box.textContent = '';
+      const sum = $('clinic-sum'); sum.textContent = '';
       const pts = (data && data.patients) || [];
-      if (!pts.length) { box.append(el('div', 'cl-text', 'Odoo kuma jiro xog bukaankan (lambarkan).')); return; }
+      if (!pts.length) { box.append(el('div', 'cl-text', 'Odoo kuma jiro xog bukaankan (lambarkan).')); sum.append(el('span', 'cl-text', 'xog ma jirto')); return; }
+      const first = pts[0].visits && pts[0].visits[0];
+      if (first) {
+        const dx0 = [...(first.diseases || [])]; if (first.custom && !dx0.some((d) => d.toLowerCase() === String(first.custom).toLowerCase())) dx0.push(first.custom);
+        dx0.slice(0, 2).forEach((d) => sum.append(el('span', 'cl-chip', d)));
+        if (first.allergies) sum.append(el('span', 'cl-chip warn', '⚠ ' + first.allergies));
+      }
       pts.forEach((p) => {
         box.append(el('div', 'cl-pt', `${p.name}${p.code ? ' · ID ' + p.code : ''}${p.age ? ' · ' + String(p.age).replace(/\s+/g, ' ').trim() : ''}${p.gender ? ' · ' + p.gender : ''}`));
         if (!p.visits.length) box.append(el('div', 'cl-text', 'Booqasho la diiwaangeliyay ma jirto.'));
-        p.visits.forEach((v) => {
-          const c = el('div', 'cl-visit');
-          c.append(el('div', 'cl-head', `${fmtD(v.date)} · ${String(v.doctor || '').replace(/\s*\(.*\)\s*$/, '')}${v.speciality ? ' · ' + v.speciality : ''}`));
-          const add = (label, text) => { if (!text) return; c.append(el('div', 'cl-lbl', label), el('div', 'cl-text', text)); };
+        p.visits.forEach((v, vi) => {
+          const old = vi > 0;
+          const c = old ? el('details', 'cl-visit cl-old') : el('div', 'cl-visit');
+          const headText = `${fmtD(v.date)} · ${String(v.doctor || '').replace(/\s*\(.*\)\s*$/, '')}${v.speciality ? ' · ' + v.speciality : ''}`;
+          const body = old ? el('div', 'cl-sec') : c;
+          if (old) { c.append(el('summary', null, '📅 ' + headText + (v.diseases && v.diseases[0] ? ' — ' + v.diseases[0] : ''))); c.append(body); body.style.display = 'grid'; body.style.gap = '8px'; body.style.paddingTop = '4px'; }
+          else body.append(el('div', 'cl-head', '📅 ' + headText));
+          const add = (label, text) => { if (!text) return; const g = el('div', 'cl-sec'); g.append(el('div', 'cl-lbl', label), el('div', 'cl-text', text)); body.append(g); };
           add('Chief complaint', v.complaint);
           const dx = [...(v.diseases || [])]; if (v.custom && !dx.some((d) => d.toLowerCase() === String(v.custom).toLowerCase())) dx.push(v.custom);
-          if (dx.length) { c.append(el('div', 'cl-lbl', 'Diagnosis')); const w = el('div', 'cl-chips'); dx.forEach((d) => w.append(el('span', 'cl-chip', d))); c.append(w); }
+          if (dx.length) { const g = el('div', 'cl-sec'); g.append(el('div', 'cl-lbl', 'Diagnosis')); const w = el('div', 'cl-chips'); dx.forEach((d) => w.append(el('span', 'cl-chip', d))); g.append(w); body.append(g); }
           add('Assessment', v.assessment); add('Diagnosis notes', v.diagnosis);
           add('Past history', v.past); add('Drug history', v.drugs_history);
-          if (v.allergies) { c.append(el('div', 'cl-lbl', 'Allergies')); const w = el('div', 'cl-chips'); w.append(el('span', 'cl-chip warn', v.allergies)); c.append(w); }
+          if (v.allergies) { const g = el('div', 'cl-sec'); g.append(el('div', 'cl-lbl', 'Allergies')); const w = el('div', 'cl-chips'); w.append(el('span', 'cl-chip warn', v.allergies)); g.append(w); body.append(g); }
           if (v.meds && v.meds.length) {
-            c.append(el('div', 'cl-lbl', 'Daawooyinka (Prescription)'));
+            const g = el('div', 'cl-sec'); g.append(el('div', 'cl-lbl', 'Daawooyinka'));
             const t = el('table'); const h = el('tr'); ['Daawo', 'Qiyaas', 'Marar', 'Muddo'].forEach((x) => h.append(el('th', null, x))); t.append(h);
             v.meds.forEach((m) => { const r = el('tr'); [String(m.name || '').replace(/^\[[^\]]*\]\s*/, ''), m.dose, m.freq, m.dur].forEach((x) => r.append(el('td', null, x == null ? '' : String(x)))); t.append(r); });
-            c.append(t);
+            g.append(t); body.append(g);
           }
           if (v.labs && v.labs.length) {
-            c.append(el('div', 'cl-lbl', 'Shabaradda (Lab)'));
-            v.labs.forEach((l) => { const row = el('div', 'cl-text', `• ${l.test}${l.state ? ' (' + l.state + ')' : ''}${l.result ? ': ' + l.result : ''}`); c.append(row); (l.abnormal || []).forEach((a) => { const w = el('div', 'cl-chips'); w.append(el('span', 'cl-chip warn', a)); c.append(w); }); });
+            const g = el('div', 'cl-sec'); g.append(el('div', 'cl-lbl', 'Shabaradda'));
+            v.labs.forEach((l) => { g.append(el('div', 'cl-text', `• ${l.test}${l.state ? ' (' + l.state + ')' : ''}${l.result ? ': ' + l.result : ''}`)); (l.abnormal || []).forEach((a) => { const w = el('div', 'cl-chips'); w.append(el('span', 'cl-chip warn', a)); g.append(w); }); });
+            body.append(g);
           }
           add('Next appointment', fmtD(v.next));
           box.append(c);
@@ -796,7 +816,7 @@
       const wrap = $('clinic'); if (!number || !token) { wrap.classList.add('hidden'); return; }
       wrap.classList.remove('hidden');
       if (clinicCache[number] && Date.now() - clinicCache[number].at < 300000) { renderClinic(clinicCache[number].data); return; }
-      $('clinic-body').textContent = 'Xogta Odoo waa la soo akhrinayaa…';
+      $('clinic-body').textContent = 'Xogta Odoo waa la soo akhrinayaa…'; $('clinic-sum').textContent = '';
       try {
         const r = await fetch(`${SUPABASE_URL}/functions/v1/odoo-clinical`, { method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ token, number }) });
         const d = await r.json();
@@ -806,6 +826,7 @@
       } catch (e) { if (selectedNumber === number) $('clinic-body').textContent = 'Xogta Odoo lama helin hadda (' + String(e.message || e) + ').'; }
     }
     let clinicFor = null;
+    let lastThreadSig = '';
     async function loadThread(forceScroll = false) {
       const number = selectedNumber;
       if (!number || !token) return;
@@ -830,6 +851,10 @@
 
         const chatter = /^\s*(asc|salaan|salaam|wcs|hi|hello|hey|wll|wllo|waryaa|haye|hayee|ok|okay|haa|waa ok|waa hagaag|mahadsanid|thanks|thank you|aamiin|inshaallah)[\s.!?]*$/i;
         messages = messages.filter((m) => m.dir === 'out' || (m.dir === 'in' && (m.file_url || /^🎤/.test(m.text || '') || ((m.text || '').replace(/\W/g, '').length >= 4 && !chatter.test(m.text || '')))));   // only the patient's meaningful messages and the doctor's own; no bot or bulk text
+        const sig = number + '|' + messages.map((m) => (m.id || '') + ':' + (m.at || '') + ':' + String(m.text || '').length + ':' + (m.file_url || '')).join(',');
+        if (!forceScroll && sig === lastThreadSig) return;   // nothing new: keep the thread (and any playing voice note) untouched
+        if (!forceScroll && [...thread.querySelectorAll('audio,video')].some((m) => !m.paused && !m.ended)) return;   // never rebuild while a voice note is playing
+        lastThreadSig = sig;
         const fragment = document.createDocumentFragment();
         if (!messages.length) {
           const empty = document.createElement('div');
