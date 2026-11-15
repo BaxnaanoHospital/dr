@@ -204,6 +204,21 @@
     .chat-person { min-width: 0; flex: 1; }
     #patient-title { display: block; overflow: hidden; font-size: 14px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
     #patient-number { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+    #clinic { border-bottom: 1px solid #e3ead9; background: #f6faf1; font-size: 13px; max-height: 42vh; overflow: auto; }
+    #clinic summary { cursor: pointer; padding: 9px 14px; font-weight: 700; color: #2f5a1f; list-style: none; }
+    #clinic summary::-webkit-details-marker { display: none; }
+    #clinic .cl-body { padding: 0 14px 12px; display: grid; gap: 10px; }
+    #clinic .cl-pt { font-weight: 700; }
+    #clinic .cl-visit { background: #fff; border: 1px solid #dde7d2; border-radius: 10px; padding: 9px 11px; display: grid; gap: 6px; }
+    #clinic .cl-head { font-size: 12px; color: #5b6b52; }
+    #clinic .cl-lbl { font-size: 11px; font-weight: 700; color: #6b7d60; text-transform: uppercase; letter-spacing: .04em; }
+    #clinic .cl-text { white-space: pre-wrap; overflow-wrap: anywhere; direction: ltr; }
+    #clinic .cl-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    #clinic .cl-chip { background: #e4f1d8; color: #2f5a1f; border-radius: 999px; padding: 2px 9px; font-weight: 600; }
+    #clinic .cl-chip.warn { background: #fde3df; color: #8a2a1d; }
+    #clinic table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    #clinic td, #clinic th { text-align: left; padding: 3px 6px; border-bottom: 1px solid #edf2e6; vertical-align: top; }
+    #clinic th { color: #6b7d60; font-weight: 700; }
     #relay-message { padding: 10px 14px; border-bottom: 1px solid #f0e4c8; background: #fff9eb; color: #75531c; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
     #thread {
       flex: 1;
@@ -342,6 +357,7 @@
           <button class="soft-btn hidden" id="edit-name-button" type="button">✎ Magac keydi</button>
         </div>
         <div id="relay-message" class="hidden"></div>
+        <details id="clinic" class="hidden" open><summary>🩺 Xogta bukaanka (Odoo)</summary><div class="cl-body" id="clinic-body"></div></details>
         <div id="thread" aria-live="polite">
           <div class="empty-state">Dooro bukaan ku jira liiska bidix si aad u bilowdo.</div>
         </div>
@@ -741,6 +757,55 @@
       return link;
     }
 
+    const clinicCache = {};
+    const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+    const fmtD = (v) => { const t = String(v || '').slice(0, 10); return t || ''; };
+    function renderClinic(data) {
+      const box = $('clinic-body'); box.textContent = '';
+      const pts = (data && data.patients) || [];
+      if (!pts.length) { box.append(el('div', 'cl-text', 'Odoo kuma jiro xog bukaankan (lambarkan).')); return; }
+      pts.forEach((p) => {
+        box.append(el('div', 'cl-pt', `${p.name}${p.code ? ' · ID ' + p.code : ''}${p.age ? ' · ' + String(p.age).replace(/\s+/g, ' ').trim() : ''}${p.gender ? ' · ' + p.gender : ''}`));
+        if (!p.visits.length) box.append(el('div', 'cl-text', 'Booqasho la diiwaangeliyay ma jirto.'));
+        p.visits.forEach((v) => {
+          const c = el('div', 'cl-visit');
+          c.append(el('div', 'cl-head', `${fmtD(v.date)} · ${String(v.doctor || '').replace(/\s*\(.*\)\s*$/, '')}${v.speciality ? ' · ' + v.speciality : ''}`));
+          const add = (label, text) => { if (!text) return; c.append(el('div', 'cl-lbl', label), el('div', 'cl-text', text)); };
+          add('Chief complaint', v.complaint);
+          const dx = [...(v.diseases || [])]; if (v.custom && !dx.some((d) => d.toLowerCase() === String(v.custom).toLowerCase())) dx.push(v.custom);
+          if (dx.length) { c.append(el('div', 'cl-lbl', 'Diagnosis')); const w = el('div', 'cl-chips'); dx.forEach((d) => w.append(el('span', 'cl-chip', d))); c.append(w); }
+          add('Assessment', v.assessment); add('Diagnosis notes', v.diagnosis);
+          add('Past history', v.past); add('Drug history', v.drugs_history);
+          if (v.allergies) { c.append(el('div', 'cl-lbl', 'Allergies')); const w = el('div', 'cl-chips'); w.append(el('span', 'cl-chip warn', v.allergies)); c.append(w); }
+          if (v.meds && v.meds.length) {
+            c.append(el('div', 'cl-lbl', 'Daawooyinka (Prescription)'));
+            const t = el('table'); const h = el('tr'); ['Daawo', 'Qiyaas', 'Marar', 'Muddo'].forEach((x) => h.append(el('th', null, x))); t.append(h);
+            v.meds.forEach((m) => { const r = el('tr'); [String(m.name || '').replace(/^\[[^\]]*\]\s*/, ''), m.dose, m.freq, m.dur].forEach((x) => r.append(el('td', null, x == null ? '' : String(x)))); t.append(r); });
+            c.append(t);
+          }
+          if (v.labs && v.labs.length) {
+            c.append(el('div', 'cl-lbl', 'Shabaradda (Lab)'));
+            v.labs.forEach((l) => { const row = el('div', 'cl-text', `• ${l.test}${l.state ? ' (' + l.state + ')' : ''}${l.result ? ': ' + l.result : ''}`); c.append(row); (l.abnormal || []).forEach((a) => { const w = el('div', 'cl-chips'); w.append(el('span', 'cl-chip warn', a)); c.append(w); }); });
+          }
+          add('Next appointment', fmtD(v.next));
+          box.append(c);
+        });
+      });
+    }
+    async function loadClinic(number) {
+      const wrap = $('clinic'); if (!number || !token) { wrap.classList.add('hidden'); return; }
+      wrap.classList.remove('hidden');
+      if (clinicCache[number] && Date.now() - clinicCache[number].at < 300000) { renderClinic(clinicCache[number].data); return; }
+      $('clinic-body').textContent = 'Xogta Odoo waa la soo akhrinayaa…';
+      try {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/odoo-clinical`, { method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ token, number }) });
+        const d = await r.json();
+        if (selectedNumber !== number) return;
+        if (!r.ok || d.error) throw new Error(d.error || 'HTTP ' + r.status);
+        clinicCache[number] = { at: Date.now(), data: d }; renderClinic(d);
+      } catch (e) { if (selectedNumber === number) $('clinic-body').textContent = 'Xogta Odoo lama helin hadda (' + String(e.message || e) + ').'; }
+    }
+    let clinicFor = null;
     async function loadThread(forceScroll = false) {
       const number = selectedNumber;
       if (!number || !token) return;
@@ -761,6 +826,7 @@
         $('edit-name-button').textContent = patient.saved ? '✎ Magaca beddel' : '✎ Magac keydi';
         $('relay-message').textContent = String(patient.relay || '');
         $('relay-message').classList.toggle('hidden', !patient.relay);
+        if (clinicFor !== number) { clinicFor = number; loadClinic(number); }
 
         const chatter = /^\s*(asc|salaan|salaam|wcs|hi|hello|hey|wll|wllo|waryaa|haye|hayee|ok|okay|haa|waa ok|waa hagaag|mahadsanid|thanks|thank you|aamiin|inshaallah)[\s.!?]*$/i;
         messages = messages.filter((m) => m.dir === 'out' || (m.dir === 'in' && (m.file_url || /^🎤/.test(m.text || '') || ((m.text || '').replace(/\W/g, '').length >= 4 && !chatter.test(m.text || '')))));   // only the patient's meaningful messages and the doctor's own; no bot or bulk text
