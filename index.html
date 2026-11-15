@@ -227,6 +227,9 @@
     #clinic table { border-collapse: collapse; width: 100%; font-size: 12px; }
     #clinic td, #clinic th { text-align: left; padding: 3px 6px; border-bottom: 1px solid #edf2e6; vertical-align: top; }
     #clinic th { color: #6b7d60; font-weight: 700; }
+    .patient-want { display: block; margin-top: 2px; font-size: 12px; color: #75531c; font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    #relay-message { font-size: 13px !important; line-height: 1.45; }
+    #relay-message::before { content: '📌 Waxa uu rabo'; display: block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 3px; color: #8a5a10; }
     #relay-message { padding: 10px 14px; border-bottom: 1px solid #f0e4c8; background: #fff9eb; color: #75531c; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
     #thread {
       flex: 1;
@@ -307,6 +310,29 @@
       .top-actions .soft-btn { padding-inline: 7px; }
       #message-input { font-size: 13px; }
     }
+  
+    /* ---- spacing & style polish ---- */
+    .panel-heading { padding: 22px 20px 16px; }
+    .patient-item { padding: 15px 18px; gap: 14px; margin: 0; border-bottom: 1px solid var(--line); transition: background .15s; }
+    .patient-item.selected { box-shadow: inset 4px 0 0 var(--green); }
+    .patient-avatar { width: 44px; height: 44px; border-radius: 14px; font-size: 16px; }
+    .patient-name { font-size: 14.5px; font-weight: 750; letter-spacing: -.01em; }
+    .patient-detail { margin-top: 3px; font-size: 11.5px; }
+    .patient-want { margin-top: 6px; padding: 6px 10px; border-radius: 10px; background: #fff7e3; font-size: 12px; line-height: 1.4; }
+    .section-title { padding: 12px 18px; letter-spacing: .05em; }
+    .patient-want.plain { background: #f1f5f3; color: #5b6b63; font-weight: 500; }
+    #relay-message { margin: 14px 16px 4px; padding: 13px 15px; border: 1px solid #f1deae; border-radius: 14px; background: #fff8e6; box-shadow: 0 2px 8px rgba(120, 85, 20, .06); }
+    #clinic { margin: 10px 16px 6px; border: 1px solid #dbe8d2; border-radius: 14px; background: #f5faf0; box-shadow: 0 2px 8px rgba(30, 80, 30, .05); overflow: auto; }
+    #clinic summary { padding: 11px 14px; }
+    #clinic .cl-body { padding: 4px 14px 16px; gap: 14px; }
+    #clinic .cl-visit { padding: 13px 14px; border-radius: 12px; gap: 12px; }
+    #clinic .cl-sec { gap: 6px; }
+    #clinic .cl-lbl { margin-bottom: 1px; }
+    #clinic .cl-chip { padding: 4px 11px; }
+    #clinic td, #clinic th { padding: 6px 8px; }
+    #thread { padding: 18px 16px; gap: 14px; }
+    .message { padding: 12px 15px; border-radius: 16px; line-height: 1.5; box-shadow: 0 1px 3px rgba(20, 50, 40, .06); }
+    #composer { padding: 14px 16px 16px; gap: 10px; }
   </style>
 </head>
 <body>
@@ -686,8 +712,15 @@
       patientName.textContent = name;
       const details = document.createElement('span');
       details.className = 'patient-detail';
-      details.textContent = `${number}${patient.last ? ` · ${patient.last}` : ''}`;
+      details.textContent = number;
+      const want = String(patient.relay || '').split('\n').map((x) => x.replace(/^[\s—-]+/, '').trim()).filter(Boolean).pop() || '';
       copy.append(patientName, details);
+      if (want || patient.last) {
+        const w = document.createElement('span'); w.className = 'patient-want';
+        w.textContent = want ? `📌 ${want}` : patient.last;
+        if (!want) w.classList.add('plain');
+        copy.append(w);
+      }
       item.append(avatar, copy);
 
       if (patient.waiting) {
@@ -845,7 +878,7 @@
         $('composer').classList.remove('hidden');
         $('edit-name-button').classList.remove('hidden');
         $('edit-name-button').textContent = patient.saved ? '✎ Magaca beddel' : '✎ Magac keydi';
-        $('relay-message').textContent = String(patient.relay || '');
+        $('relay-message').textContent = String(patient.relay || '').split('\n').map((x) => x.replace(/^[\s—-]+/, '').trim()).filter(Boolean).join('\n');
         $('relay-message').classList.toggle('hidden', !patient.relay);
         if (clinicFor !== number) { clinicFor = number; loadClinic(number); }
 
