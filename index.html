@@ -749,7 +749,7 @@
       const wasAtBottom = thread.scrollTop + thread.clientHeight >= thread.scrollHeight - 45;
 
       try {
-        const messages = await rpc('dr_thread', { p_token: token, p_number: number });
+        let messages = await rpc('dr_thread', { p_token: token, p_number: number });
         if (requestId !== threadRequestId || selectedNumber !== number) return;
         if (!Array.isArray(messages)) throw new Error('Fariimaha lama akhrin karin.');
 
@@ -762,6 +762,8 @@
         $('relay-message').textContent = String(patient.relay || '');
         $('relay-message').classList.toggle('hidden', !patient.relay);
 
+        const chatter = /^\s*(asc|salaan|salaam|wcs|hi|hello|hey|wll|wllo|waryaa|haye|hayee|ok|okay|haa|waa ok|waa hagaag|mahadsanid|thanks|thank you|aamiin|inshaallah)[\s.!?]*$/i;
+        messages = messages.filter((m) => m.dir === 'out' || (m.dir === 'in' && (m.file_url || /^🎤/.test(m.text || '') || ((m.text || '').replace(/\W/g, '').length >= 4 && !chatter.test(m.text || '')))));   // only the patient's meaningful messages and the doctor's own; no bot or bulk text
         const fragment = document.createDocumentFragment();
         if (!messages.length) {
           const empty = document.createElement('div');
