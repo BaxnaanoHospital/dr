@@ -184,6 +184,11 @@
     .patient-name { display: block; overflow: hidden; font-size: 13px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
     .patient-detail { display: block; overflow: hidden; margin-top: 4px; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
     .unread-badge { flex: 0 0 auto; border-radius: 20px; padding: 3px 7px; background: #fff0dc; color: #a65a06; font-size: 10px; font-weight: 750; }
+    .section-title { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #f0e4c8; background: #fff6e3; color: #8a5a0a; font-size: 12px; font-weight: 750; }
+    .section-title.other { border-bottom-color: var(--line); background: #f3f7f5; color: #4b6258; }
+    .section-title .count { border-radius: 20px; padding: 1px 8px; background: #f6c76a; color: #5e3d03; font-size: 11px; }
+    .section-title.other .count { background: #dbe7e1; color: #35493f; }
+    .patient-item.waiting { box-shadow: inset 3px 0 0 #e8a020; }
     .empty-state { padding: 25px 16px; color: var(--muted); text-align: center; font-size: 13px; line-height: 1.5; }
 
     #chat-panel { display: flex; flex: 1; flex-direction: column; }
@@ -243,6 +248,14 @@
     #app-status { min-height: 18px; padding: 0 16px 8px; color: var(--muted); font-size: 11px; }
     #app-status.error { color: var(--danger); }
 
+    dialog#contact-dialog { width: min(92vw, 400px); border: 0; border-radius: 18px; padding: 22px; box-shadow: var(--shadow); color: var(--ink); }
+    dialog#contact-dialog::backdrop { background: rgba(10, 30, 22, .45); }
+    #contact-dialog h3 { margin: 0 0 4px; font-size: 17px; }
+    #contact-dialog p.sub { margin: 0 0 6px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    #contact-dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    #contact-error { min-height: 18px; margin: 8px 0 0; color: var(--danger); font-size: 12px; }
+    #edit-name-button { min-height: 34px; padding: 6px 10px; font-size: 12px; }
+    .saved-dot { color: var(--green); font-size: 11px; }
     @media (max-width: 760px) {
       #main { padding: 9px; gap: 0; }
       #list-panel, #chat-panel { border-radius: 13px; }
@@ -326,6 +339,7 @@
             <span id="patient-title">Dooro bukaan</span>
             <span id="patient-number">Fariimaha bukaanka halkan ayay ka muuqanayaan</span>
           </div>
+          <button class="soft-btn hidden" id="edit-name-button" type="button">✎ Magac keydi</button>
         </div>
         <div id="relay-message" class="hidden"></div>
         <div id="thread" aria-live="polite">
@@ -350,6 +364,26 @@
     <div id="app-status" role="status" aria-live="polite"></div>
   </div>
 
+  <dialog id="contact-dialog" aria-labelledby="contact-title">
+    <form id="contact-form" method="dialog">
+      <h3 id="contact-title">Lambar cusub</h3>
+      <p class="sub">Geli magaca iyo lambarka bukaanka. Waa la keydinayaa (device kasta ayaad ka arki kartaa), kadibna si toos ah ayaad fariin ugu diri kartaa WhatsApp.</p>
+      <div class="field">
+        <label for="contact-name">Magaca bukaanka</label>
+        <input id="contact-name" placeholder="Tusaale: Axmed Cali" autocomplete="off" maxlength="80">
+      </div>
+      <div class="field">
+        <label for="contact-number">Lambarka</label>
+        <input id="contact-number" placeholder="06XXXXXXXX ama 2526XXXXXXXX" inputmode="tel" autocomplete="off" required>
+      </div>
+      <p id="contact-error" role="alert"></p>
+      <div class="dlg-actions">
+        <button class="soft-btn" id="contact-cancel" type="button">Jooji</button>
+        <button class="primary-btn" id="contact-save" type="submit">Keydi oo fur</button>
+      </div>
+    </form>
+  </dialog>
+
   <script>
     'use strict';
 
@@ -365,7 +399,8 @@
       yaxye: 'Dr. Yaxye',
       sadia: 'Dr. Sadio',
       hersi: 'Dr. Hersi',
-      saney: 'Dr. Saney'
+      saney: 'Dr. Saney',
+      admin: 'Admin'
     };
 
     let token = null;
@@ -461,6 +496,7 @@
       $('patient-list').replaceChildren();
       $('thread').innerHTML = '<div class="empty-state">Dooro bukaan ku jira liiska bidix si aad u bilowdo.</div>';
       $('composer').classList.add('hidden');
+      $('edit-name-button').classList.add('hidden');
       $('main').classList.remove('chatting');
       clearSelectedFile();
     }
@@ -587,41 +623,64 @@
         return;
       }
 
-      filtered.forEach((patient) => {
-        const number = String(patient.number);
-        const name = String(patient.name || number);
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = `patient-item${selectedNumber === number ? ' selected' : ''}`;
-        item.addEventListener('click', () => openPatient(number));
+      const waiting = filtered.filter((patient) => patient.waiting);
+      const others = filtered.filter((patient) => !patient.waiting);
 
-        const avatar = document.createElement('span');
-        avatar.className = 'patient-avatar';
-        avatar.textContent = (name.trim()[0] || '#').toUpperCase();
+      const addSection = (title, items, className) => {
+        if (!items.length) return;
+        const heading = document.createElement('div');
+        heading.className = `section-title ${className}`;
+        const label = document.createElement('span');
+        label.textContent = title;
+        const count = document.createElement('span');
+        count.className = 'count';
+        count.textContent = String(items.length);
+        heading.append(label, count);
+        list.append(heading);
+        items.forEach((patient) => list.append(buildPatientItem(patient)));
+      };
+      addSection('⏳ Sugaya jawaab', waiting, 'wait');
+      addSection('Wadahadallada kale', others, 'other');
+    }
 
-        const copy = document.createElement('span');
-        copy.className = 'patient-copy';
-        const patientName = document.createElement('span');
-        patientName.className = 'patient-name';
-        patientName.textContent = name;
-        const details = document.createElement('span');
-        details.className = 'patient-detail';
-        details.textContent = `${number}${patient.last ? ` · ${patient.last}` : ''}`;
-        copy.append(patientName, details);
-        item.append(avatar, copy);
+    function buildPatientItem(patient) {
+      const number = String(patient.number);
+      const name = String(patient.name || number);
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = `patient-item${selectedNumber === number ? ' selected' : ''}${patient.waiting ? ' waiting' : ''}`;
+      item.addEventListener('click', () => openPatient(number));
 
-        if (patient.open) {
-          const badge = document.createElement('span');
-          badge.className = 'unread-badge';
-          badge.textContent = 'Cusub';
-          item.append(badge);
-        }
-        list.append(item);
-      });
+      const avatar = document.createElement('span');
+      avatar.className = 'patient-avatar';
+      avatar.textContent = (name.trim()[0] || '#').toUpperCase();
+
+      const copy = document.createElement('span');
+      copy.className = 'patient-copy';
+      const patientName = document.createElement('span');
+      patientName.className = 'patient-name';
+      patientName.textContent = name;
+      const details = document.createElement('span');
+      details.className = 'patient-detail';
+      details.textContent = `${number}${patient.last ? ` · ${patient.last}` : ''}`;
+      copy.append(patientName, details);
+      item.append(avatar, copy);
+
+      if (patient.waiting) {
+        const badge = document.createElement('span');
+        badge.className = 'unread-badge';
+        badge.textContent = 'Sugaya';
+        item.append(badge);
+      }
+      return item;
     }
 
     function openPatient(number) {
       selectedNumber = String(number);
+      const known = patients.find((item) => String(item.number) === selectedNumber);
+      $('patient-title').textContent = String((known && known.name) || selectedNumber);
+      $('patient-number').textContent = selectedNumber;
+      $('composer').classList.remove('hidden');
       clearSelectedFile();
       $('message-input').value = '';
       $('main').classList.add('chatting');
@@ -698,6 +757,8 @@
         $('patient-title').textContent = String(patient.name || number);
         $('patient-number').textContent = number;
         $('composer').classList.remove('hidden');
+        $('edit-name-button').classList.remove('hidden');
+        $('edit-name-button').textContent = patient.saved ? '✎ Magaca beddel' : '✎ Magac keydi';
         $('relay-message').textContent = String(patient.relay || '');
         $('relay-message').classList.toggle('hidden', !patient.relay);
 
@@ -737,24 +798,57 @@
       }
     }
 
-    function addPatientNumber() {
-      const value = window.prompt('Lambarka bukaanka (2526XXXXXXXX ama 06XXXXXXXX):');
-      if (!value) return;
-      let number = value.replace(/\D/g, '');
+    function normalizeNumber(value) {
+      let number = String(value || '').replace(/\D/g, '');
       if (number.length === 9 && number.startsWith('6')) number = `252${number}`;
       else if (number.length === 10 && number.startsWith('0')) number = `252${number.slice(1)}`;
-      if (!/^252[0-9]{7,9}$/.test(number)) {
-        window.alert('Lambar sax ah geli. Tusaale: 2526XXXXXXXX ama 06XXXXXXXX.');
+      return /^[0-9]{10,15}$/.test(number) ? number : '';
+    }
+
+    let contactEditing = false;
+    function openContactDialog(number = '', name = '') {
+      contactEditing = Boolean(number);
+      $('contact-title').textContent = contactEditing ? 'Magac keydi' : 'Lambar cusub';
+      $('contact-number').value = number;
+      $('contact-number').readOnly = contactEditing;
+      $('contact-name').value = name;
+      $('contact-error').textContent = '';
+      const dialog = $('contact-dialog');
+      if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+      window.setTimeout(() => (contactEditing ? $('contact-name') : $('contact-name')).focus(), 50);
+    }
+
+    function closeContactDialog() {
+      const dialog = $('contact-dialog');
+      if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open');
+    }
+
+    async function saveContact(event) {
+      event.preventDefault();
+      const number = normalizeNumber($('contact-number').value);
+      const name = $('contact-name').value.trim();
+      if (!number) {
+        $('contact-error').textContent = 'Lambar sax ah geli. Tusaale: 0615551234 ama 252615551234.';
         return;
       }
-
-      const saved = getExtraNumbers();
-      if (!saved.includes(number)) {
-        saved.push(number);
-        safeStorageSet(`dx_${doctorKey}`, JSON.stringify(saved));
+      setBusy($('contact-save'), true, 'Waa la keydinayaa...', 'Keydi oo fur');
+      try {
+        await rpc('dr_contact_save', { p_token: token, p_number: number, p_name: name });
+        closeContactDialog();
+        selectedNumber = number;
+        await loadPatients();
+        openPatient(number);
+      } catch (error) {
+        $('contact-error').textContent = error.message || 'Lama keydin karin.';
+      } finally {
+        setBusy($('contact-save'), false, 'Waa la keydinayaa...', 'Keydi oo fur');
       }
-      openPatient(number);
-      loadPatients();
+    }
+
+    function editSelectedName() {
+      if (!selectedNumber) return;
+      const patient = patients.find((item) => String(item.number) === selectedNumber) || {};
+      openContactDialog(selectedNumber, patient.saved ? String(patient.name || '') : '');
     }
 
     function clearSelectedFile() {
@@ -902,7 +996,10 @@
 
     $('login-form').addEventListener('submit', login);
     $('logout-button').addEventListener('click', logout);
-    $('add-number-button').addEventListener('click', addPatientNumber);
+    $('add-number-button').addEventListener('click', () => openContactDialog());
+    $('edit-name-button').addEventListener('click', editSelectedName);
+    $('contact-form').addEventListener('submit', saveContact);
+    $('contact-cancel').addEventListener('click', closeContactDialog);
     $('back-button').addEventListener('click', goBackToPatients);
     $('patient-search').addEventListener('input', renderPatientList);
     $('file-input').addEventListener('change', chooseFile);
