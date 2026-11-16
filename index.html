@@ -344,6 +344,14 @@
     #send-button { border-radius: 16px; min-width: 76px; box-shadow: 0 6px 16px rgba(11, 110, 79, .28); font-weight: 800; }
     #composer .soft-btn { border-radius: 999px; padding: 9px 14px; }
     #relay-message { white-space: pre-wrap; }
+  
+    #relay-message::before { content: '📌 Soo koob'; }
+    #relay-message .rl-row { display: grid; gap: 3px; margin-top: 8px; }
+    #relay-message .rl-row:first-child { margin-top: 0; }
+    #relay-message .rl-tag { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #8a5a10; }
+    #relay-message .rl-codsi { background: #fff; border: 1px solid #f1deae; border-radius: 10px; padding: 9px 11px; }
+    #relay-message .rl-codsi .rl-tag { color: #b3261e; }
+    #relay-message .rl-codsi .rl-text { font-weight: 700; color: #4a3410; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -898,7 +906,17 @@
         $('composer').classList.remove('hidden');
         $('edit-name-button').classList.remove('hidden');
         $('edit-name-button').textContent = patient.saved ? '✎ Magaca beddel' : '✎ Magac keydi';
-        { const lines = String(patient.relay || '').split('\n').map((x) => x.replace(/^[\s—-]+/, '').trim()).filter(Boolean); $('relay-message').textContent = lines.length > 1 ? lines.map((x) => '• ' + x).join('\n') : lines.join(''); }
+        {
+          const lines = String(patient.relay || '').split('\n').map((x) => x.replace(/^[\s—-]+/, '').trim()).filter(Boolean);
+          const rm = $('relay-message'); rm.textContent = '';
+          lines.forEach((ln) => {
+            const m = ln.match(/^(Xaalad|Codsi)\s*:\s*(.*)$/i);
+            const row = document.createElement('div'); row.className = 'rl-row' + (m ? ' rl-' + m[1].toLowerCase() : '');
+            if (m) { const tag = document.createElement('span'); tag.className = 'rl-tag'; tag.textContent = m[1].toLowerCase() === 'codsi' ? 'Waxa uu rabo' : 'Xaalad'; const tx = document.createElement('span'); tx.className = 'rl-text'; tx.textContent = m[2]; row.append(tag, tx); }
+            else row.textContent = lines.length > 1 ? '• ' + ln : ln;
+            rm.append(row);
+          });
+        }
         $('relay-message').classList.toggle('hidden', !patient.relay);
         if (clinicFor !== number) { clinicFor = number; loadClinic(number); }
 
