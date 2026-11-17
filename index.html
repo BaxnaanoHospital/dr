@@ -834,6 +834,7 @@
       }
       pts.forEach((p) => {
         box.append(el('div', 'cl-pt', `${p.name}${p.code ? ' · ID ' + p.code : ''}${p.age ? ' · ' + String(p.age).replace(/\s+/g, ' ').trim() : ''}${p.gender ? ' · ' + p.gender : ''}`));
+        if (p.matched_by && p.matched_by !== 'whatsapp') box.append(el('div', 'cl-note', p.matched_by === 'id' ? 'Waxaa lagu helay ID-ga lagu sheegay wadahadalka.' : 'Waxaa lagu helay lambar lagu sheegay wadahadalka.'));
         if (!p.visits.length) box.append(el('div', 'cl-note', 'Booqasho la diiwaangeliyay ma jirto.'));
         p.visits.forEach((v, vi) => {
           const old = vi > 0;
