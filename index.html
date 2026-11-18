@@ -210,6 +210,8 @@
     #clinic th { text-align: left; padding: 5px 6px; font-weight: 500; color: var(--text); border-bottom: 1px solid var(--line); }
     #clinic td { padding: 5px 6px; border-bottom: 1px solid var(--g200); vertical-align: top; }
     #clinic .cl-note { color: var(--muted); }
+    #clinic .cl-search { display: flex; gap: 6px; margin-top: 2px; }
+    #clinic .cl-search .form-control { flex: 1; min-width: 0; }
 
     /* Messages: .o_thread_message */
     #thread { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px 14px; overscroll-behavior: contain; }
@@ -825,7 +827,7 @@
       const box = $('clinic-body'); box.textContent = '';
       const sum = $('clinic-sum'); sum.textContent = '';
       const pts = (data && data.patients) || [];
-      if (!pts.length) { box.append(el('div', 'cl-note', 'Odoo kuma jiro xog bukaankan (lambarkan).')); sum.append(el('span', 'cl-note', 'xog ma jirto')); return; }
+      if (!pts.length) { box.append(el('div', 'cl-note', data && data.search ? `“${data.search}” Odoo lagama helin. Isku day ID, lambar kale ama magaca saddexan.` : 'Lambarka WhatsApp-ka Odoo lagama helin. Ku raadi ID-ga isbitaalka, lambarka ama magaca:')); box.append(searchRow(data && data.search)); sum.append(el('span', 'cl-note', 'raadi')); return; }
       const first = pts[0].visits && pts[0].visits[0];
       if (first) {
         const dx0 = [...(first.diseases || [])]; if (first.custom && !dx0.some((d) => d.toLowerCase() === String(first.custom).toLowerCase())) dx0.push(first.custom);
@@ -834,7 +836,8 @@
       }
       pts.forEach((p) => {
         box.append(el('div', 'cl-pt', `${p.name}${p.code ? ' · ID ' + p.code : ''}${p.age ? ' · ' + String(p.age).replace(/\s+/g, ' ').trim() : ''}${p.gender ? ' · ' + p.gender : ''}`));
-        if (p.matched_by && p.matched_by !== 'whatsapp') box.append(el('div', 'cl-note', p.matched_by === 'id' ? 'Waxaa lagu helay ID-ga lagu sheegay wadahadalka.' : 'Waxaa lagu helay lambar lagu sheegay wadahadalka.'));
+        const mb = { id: 'Waxaa lagu helay ID-ga lagu sheegay wadahadalka.', phone: 'Waxaa lagu helay lambarka bukaanku sheegay' + (p.phone ? ' (' + p.phone + ')' : '') + '.', name: 'Waxaa lagu helay magaca bukaanku sheegay.', 'name?': 'Magac la mid ah ayaa la helay - hubi inuu yahay qofka saxda ah.', search: 'Natiijada raadintaada.' }[p.matched_by];
+        if (mb) box.append(el('div', 'cl-note', mb));
         if (!p.visits.length) box.append(el('div', 'cl-note', 'Booqasho la diiwaangeliyay ma jirto.'));
         p.visits.forEach((v, vi) => {
           const old = vi > 0;
@@ -865,18 +868,29 @@
           box.append(c);
         });
       });
+      box.append(searchRow(data && data.search));
     }
-    async function loadClinic(number) {
+    function searchRow(prev) {
+      const f = el('form', 'cl-search');
+      const inp = el('input', 'form-control'); inp.placeholder = 'Raadi Odoo: ID (0050247), lambar ama magac'; inp.value = prev || ''; inp.setAttribute('aria-label', 'Raadi bukaan Odoo');
+      const b = el('button', 'btn btn-secondary', 'Raadi'); b.type = 'submit';
+      f.append(inp, b);
+      f.addEventListener('submit', (e) => { e.preventDefault(); const v = inp.value.trim(); if (v.length >= 4 && selectedNumber) loadClinic(selectedNumber, v); });
+      return f;
+    }
+    async function loadClinic(number, q = '') {
       const wrap = $('clinic'); if (!number || !token) { wrap.classList.add('hidden'); return; }
       wrap.classList.remove('hidden');
-      if (clinicCache[number] && Date.now() - clinicCache[number].at < 300000) { renderClinic(clinicCache[number].data); return; }
+      if (!q && clinicCache[number] && Date.now() - clinicCache[number].at < 300000) { renderClinic(clinicCache[number].data); return; }
       $('clinic-body').textContent = 'Xogta Odoo waa la soo akhrinayaa…'; $('clinic-sum').textContent = '';
       try {
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/odoo-clinical`, { method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ token, number }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/odoo-clinical`, { method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(q ? { token, number, q } : { token, number }) });
         const d = await r.json();
         if (selectedNumber !== number) return;
         if (!r.ok || d.error) throw new Error(d.error || 'HTTP ' + r.status);
-        clinicCache[number] = { at: Date.now(), data: d }; renderClinic(d);
+        if (!q || (d.patients && d.patients.length)) clinicCache[number] = { at: Date.now(), data: d };
+        renderClinic(d);
+        if (q) $('clinic').open = true;
       } catch (e) { if (selectedNumber === number) $('clinic-body').textContent = 'Xogta Odoo lama helin hadda (' + String(e.message || e) + ').'; }
     }
 
