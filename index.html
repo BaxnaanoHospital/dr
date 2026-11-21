@@ -247,6 +247,23 @@
     .audio-fallback { font-size: 12px; font-weight: 500; color: var(--danger); background: #fde3df; padding: 6px 10px; }
     .file-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--line); background: var(--g100); color: var(--link); font-weight: 500; }
 
+    /* bot status (navbar) */
+    .bot-status { gap: 6px; font-size: 12.5px; font-weight: 500; cursor: default; }
+    .bot-status.hidden { display: none; }
+    .bot-status .bs-dot { width: 9px; height: 9px; border-radius: 50%; background: #9bdfb0; box-shadow: 0 0 0 3px rgba(155,223,176,.25); flex: 0 0 auto; }
+    .bot-status.off .bs-dot { background: #ff8b7b; box-shadow: 0 0 0 3px rgba(255,139,123,.28); animation: bs-blink 1.2s ease-in-out infinite; }
+    .bot-status.off .bs-text { color: #ffd9d2; }
+    @keyframes bs-blink { 50% { opacity: .35; } }
+    @media (max-width: 767.98px) { .bot-status .bs-text { display: none; } }
+    @media (prefers-reduced-motion: reduce) { .bot-status.off .bs-dot { animation: none; } }
+    /* ready-made replies (the doctor taps one, edits if needed, then sends) */
+    .quick-replies { display: flex; gap: 6px; overflow-x: auto; padding: 0 0 8px; scrollbar-width: thin; }
+    .quick-replies::-webkit-scrollbar { height: 4px; }
+    .qr-chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; max-width: 260px; padding: 5px 10px; border: 1px solid var(--line-dark); border-radius: 10rem; background: var(--g100); color: var(--text); font: inherit; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+    .qr-chip:hover { border-color: var(--primary); color: var(--primary); background: #fff; }
+    .qr-chip.add { border-style: dashed; color: var(--muted); }
+    .qr-chip .qr-x { margin-left: 2px; color: var(--muted); font-size: 13px; line-height: 1; }
+    .qr-chip .qr-x:hover { color: var(--danger); }
     /* Composer: .o_composer */
     .o_composer { flex: 0 0 auto; padding: 10px 16px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: #fff; }
     .o_file_chip { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 4px 6px 4px 10px; border: 1px solid var(--line); background: var(--g100); font-size: 12px; max-width: 100%; }
@@ -353,6 +370,7 @@
         <button class="o_nav_item active" type="button" id="menu-chat">Dr. Chat</button>
       </div>
       <div class="o_nav_right">
+        <span class="o_nav_item bot-status hidden" id="bot-status" title=""><span class="bs-dot"></span><span class="bs-text" id="bot-status-text">Bot</span></span>
         <span class="o_nav_item o_nav_user"><span class="o_avatar" id="nav-avatar">D</span><span class="nm" id="doctor-title">Dhakhtar</span></span>
         <button class="o_nav_item" type="button" id="logout-button" title="Ka bax"><svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="nm">Ka bax</span></button>
       </div>
@@ -401,6 +419,7 @@
         </div>
         <div class="o_composer hidden" id="composer">
           <div class="o_file_chip hidden" id="file-chip"><span id="file-status"></span><button class="o_icon_btn" id="remove-file" type="button" aria-label="Faylka ka saar"><svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+          <div class="quick-replies" id="quick-replies" aria-label="Jawaabo diyaarsan"></div>
           <div class="o_composer_box">
             <textarea id="message-input" rows="1" placeholder="Qor fariinta bukaanka…" aria-label="Qoraalka fariinta"></textarea>
             <div class="o_composer_tools">
@@ -465,6 +484,7 @@
     let token = null;
     let doctorKey = '';
     let selectedNumber = null;
+    let botTimer = null;
     let selectedFile = null;
     let mediaRecorder = null;
     let recordingStream = null;
@@ -532,6 +552,7 @@
     }
 
     function clearSession() {
+      clearInterval(botTimer); $('bot-status').classList.add('hidden');
       token = null; doctorKey = ''; selectedNumber = null; patients = []; hiddenPatients = []; hiddenCount = 0;
       stopPolling(); stopRecording();
       safeStorageRemove('dr_token'); safeStorageRemove('dr_key');
@@ -583,6 +604,8 @@
       $('nav-avatar').textContent = (name.replace(/^Dr\.\s*/i, '')[0] || 'D').toUpperCase();
       loadPatients();
       startPolling();
+      startBotStatus();
+      renderQuickReplies();
     }
 
     function startPolling() { stopPolling(); pollTimer = window.setInterval(() => { if (!isComposerBusy()) loadPatients(); }, POLL_INTERVAL_MS); }
@@ -1026,6 +1049,66 @@
     }
 
     // ---- composer ----
+    // ---------- bot status: 🟢 Bot-ku wuu shaqaynayaa / 🔴 Bot-ku wuu xiran yahay ----------
+    async function checkBot() {
+      if (!token) return;
+      try {
+        const st = await rpc('dr_bot_status', { p_token: token });
+        const el = $('bot-status'); el.classList.remove('hidden');
+        if (st && st.online) {
+          el.classList.remove('off');
+          $('bot-status-text').textContent = 'Bot-ku wuu shaqaynayaa';
+          el.title = 'Bot-ka WhatsApp-ku wuu shaqaynayaa' + (st.version ? ' · ' + st.version : '');
+        } else {
+          el.classList.add('off');
+          const m = st && st.age_min != null ? Number(st.age_min) : null;
+          const ago = m == null ? '' : m < 60 ? m + ' daqiiqo' : Math.round(m / 60) + ' saacadood';
+          $('bot-status-text').textContent = 'Bot-ku wuu xiran yahay' + (ago ? ' · ' + ago : '');
+          el.title = 'Bot-ka WhatsApp-ku ma shaqaynayo. Hubi telefoonka (Termux / internet / koronto).';
+        }
+      } catch (e) { /* network: keep the last state */ }
+    }
+    function startBotStatus() { clearInterval(botTimer); checkBot(); botTimer = setInterval(checkBot, 60000); }
+
+    // ---------- ready-made replies: a tap puts the text in the box; the doctor can change it, then sends ----------
+    const QR_BASE = [
+      'Daawada sii wad sidii laguu qoray.',
+      'Fadlan isbitaalka imow si dhakhtarku kuu eego.',
+      'Daawada jooji oo isbitaalka imow.',
+      'Natiijada baaritaanka noo soo dir.',
+      'Waa caadi, wax dhib ah ma leh.',
+      'Number-ka ballanta waxaad ka jaran kartaa Cashier-ka 0613490055.'
+    ];
+    const qrKey = () => 'drchat-qr-' + (doctorKey || 'dr');
+    function qrMine() { try { return JSON.parse(localStorage.getItem(qrKey()) || '[]'); } catch (e) { return []; } }
+    function qrSave(list) { try { localStorage.setItem(qrKey(), JSON.stringify(list.slice(0, 12))); } catch (e) {} }
+    function renderQuickReplies() {
+      const box = $('quick-replies'); box.textContent = '';
+      const mine = qrMine();
+      const add = (text, own) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'qr-chip'; b.title = text;
+        const t = document.createElement('span'); t.textContent = text; t.style.overflow = 'hidden'; t.style.textOverflow = 'ellipsis'; b.appendChild(t);
+        b.addEventListener('click', (ev) => {
+          if (ev.target.classList.contains('qr-x')) { qrSave(qrMine().filter((x) => x !== text)); renderQuickReplies(); return; }
+          const inp = $('message-input'); const cur = inp.value.trim();
+          inp.value = cur ? cur + (/[.!?]$/.test(cur) ? ' ' : '. ') + text : text;
+          autoGrow(); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+        });
+        if (own) { const x = document.createElement('span'); x.className = 'qr-x'; x.textContent = '×'; x.title = 'Ka saar'; b.appendChild(x); }
+        box.appendChild(b);
+      };
+      for (const t of mine) add(t, true);
+      for (const t of QR_BASE) if (!mine.includes(t)) add(t, false);
+      const plus = document.createElement('button'); plus.type = 'button'; plus.className = 'qr-chip add'; plus.textContent = '+ Keydi qoraalka';
+      plus.title = 'Qoraalka sanduuqa ku jira u keydi jawaab diyaarsan';
+      plus.addEventListener('click', () => {
+        const v = $('message-input').value.trim();
+        if (!v) { notify('Marka hore qoraalka ku qor sanduuqa, kadib riix "Keydi".'); return; }
+        qrSave([v, ...qrMine().filter((x) => x !== v)]); renderQuickReplies(); notify('Jawaabta waa la keydiyay.');
+      });
+      box.appendChild(plus);
+      box.scrollLeft = 0;
+    }
     // ↓ button: tells the doctor there is more below (messages under the summary / patient data)
     function updateToBottom() {
       const sa = $('scroll-area'), b = $('to-bottom');
