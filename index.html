@@ -218,6 +218,15 @@
     #scroll-area > .alert, #scroll-area > #clinic { margin-top: 0; margin-bottom: 0; }
     #thread { flex: 1 0 auto; padding: 4px 12px 14px; border-top: 1px solid var(--line); }
     #thread > .empty-state { padding-top: 40px; }
+    #to-bottom { position: sticky; bottom: 12px; align-self: center; z-index: 5; margin-top: -54px; display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px 9px 12px; border: 0; border-radius: 10rem; background: var(--primary); color: #fff; font: 500 13px/1 inherit; font-family: inherit; box-shadow: 0 6px 18px rgba(0,0,0,.22); cursor: pointer; animation: tb-in .25s ease-out; }
+    #to-bottom.hidden { display: none; }
+    #to-bottom:hover { filter: brightness(1.08); }
+    #to-bottom .tb-arrow { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.22); font-size: 15px; animation: tb-bounce 1.3s ease-in-out infinite; }
+    #to-bottom.pulse { animation: tb-in .25s ease-out, tb-pulse 1.6s ease-out 3; }
+    @keyframes tb-bounce { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(4px); } }
+    @keyframes tb-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @keyframes tb-pulse { 0% { box-shadow: 0 0 0 0 rgba(0,160,157,.55), 0 6px 18px rgba(0,0,0,.22); } 100% { box-shadow: 0 0 0 16px rgba(0,160,157,0), 0 6px 18px rgba(0,0,0,.22); } }
+    @media (prefers-reduced-motion: reduce) { #to-bottom, #to-bottom .tb-arrow, #to-bottom.pulse { animation: none; } }
     .o_date_sep { display: flex; align-items: center; gap: 10px; margin: 12px 4px 6px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
     .o_date_sep::before, .o_date_sep::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
     .o_message { display: flex; gap: 10px; padding: 9px 8px; border-radius: 2px; }
@@ -387,6 +396,7 @@
         <div id="thread" aria-live="polite">
           <div class="empty-state">Dooro bukaan ku jira liiska si aad u aragto fariimihiisa.</div>
         </div>
+        <button id="to-bottom" class="hidden" type="button" title="Hoos u deg - fariimaha"><span class="tb-arrow">&#8595;</span><span id="to-bottom-label">Fariimaha hoos</span></button>
         </div>
         <div class="o_composer hidden" id="composer">
           <div class="o_file_chip hidden" id="file-chip"><span id="file-status"></span><button class="o_icon_btn" id="remove-file" type="button" aria-label="Faylka ka saar"><svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -968,6 +978,7 @@
         thread.replaceChildren(fragment);
         if (forceScroll === 'open' && !$('relay-message').classList.contains('hidden')) sa.scrollTop = 0;   // a patient waiting for the doctor opens on his summary first
         else if (forceScroll || wasAtBottom) sa.scrollTop = sa.scrollHeight;
+        requestAnimationFrame(updateToBottom);
       } catch (error) {
         if (requestId === threadRequestId && !offline) notify(error.message || 'Fariimaha lama soo bandhigi karin.', 'error');
       }
@@ -1014,6 +1025,30 @@
     }
 
     // ---- composer ----
+    // ↓ button: tells the doctor there is more below (messages under the summary / patient data)
+    function updateToBottom() {
+      const sa = $('scroll-area'), b = $('to-bottom');
+      const below = sa.scrollHeight - sa.scrollTop - sa.clientHeight;
+      const has = !!selectedNumber && $('thread').querySelector('.o_message');
+      if (has && below > 90) {
+        const lim = sa.getBoundingClientRect().bottom - 30;
+        const n = [...$('thread').querySelectorAll('.o_message')].filter((m) => m.getBoundingClientRect().top > lim).length;
+        $('to-bottom-label').textContent = n > 0 ? 'Fariimaha hoos (' + n + ')' : 'Hoos u deg';
+        if (b.classList.contains('hidden')) { b.classList.remove('hidden'); b.classList.add('pulse'); setTimeout(() => b.classList.remove('pulse'), 5000); }
+      } else b.classList.add('hidden');
+    }
+    $('scroll-area').addEventListener('scroll', () => requestAnimationFrame(updateToBottom), { passive: true });
+    window.addEventListener('resize', () => requestAnimationFrame(updateToBottom));
+    $('to-bottom').addEventListener('click', () => { const sa = $('scroll-area'); sa.scrollTo({ top: sa.scrollHeight, behavior: 'smooth' }); });
+    // opening "Xogta bukaanka": scroll so the whole patient data is in view at once
+    $('clinic').addEventListener('toggle', () => {
+      if (!$('clinic').open) return;
+      setTimeout(() => {
+        const sa = $('scroll-area'), c = $('clinic');
+        const top = sa.scrollTop + (c.getBoundingClientRect().top - sa.getBoundingClientRect().top) - 8;
+        sa.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }, 60);
+    });
     // a photo that finishes loading after the scroll keeps the newest message in view
     document.getElementById('scroll-area').addEventListener('load', (e) => {
       if (e.target && e.target.tagName === 'IMG') { const sa = $('scroll-area'); if (sa.scrollHeight - sa.scrollTop - sa.clientHeight < e.target.clientHeight + 120) sa.scrollTop = sa.scrollHeight; }
