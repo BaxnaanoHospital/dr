@@ -218,14 +218,15 @@
     #scroll-area > .alert, #scroll-area > #clinic { margin-top: 0; margin-bottom: 0; }
     #thread { flex: 1 0 auto; padding: 4px 12px 14px; border-top: 1px solid var(--line); }
     #thread > .empty-state { padding-top: 40px; }
-    #to-bottom { position: sticky; bottom: 12px; align-self: center; z-index: 5; margin-top: -54px; display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px 9px 12px; border: 0; border-radius: 10rem; background: var(--primary); color: #fff; font: 500 13px/1 inherit; font-family: inherit; box-shadow: 0 6px 18px rgba(0,0,0,.22); cursor: pointer; animation: tb-in .25s ease-out; }
+    #to-bottom { position: sticky; bottom: 10px; align-self: center; z-index: 5; margin-top: -44px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px 6px 8px; border: 0; border-radius: 10rem; background: var(--primary); color: #fff; font: 500 12.5px/1 inherit; font-family: inherit; box-shadow: 0 4px 12px rgba(0,0,0,.2); cursor: pointer; animation: tb-in .3s ease-out; }
+    @media (max-width: 767.98px) { #to-bottom { font-size: 12px; padding: 5px 11px 5px 7px; } }
     #to-bottom.hidden { display: none; }
     #to-bottom:hover { filter: brightness(1.08); }
-    #to-bottom .tb-arrow { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.22); font-size: 15px; animation: tb-bounce 1.3s ease-in-out infinite; }
-    #to-bottom.pulse { animation: tb-in .25s ease-out, tb-pulse 1.6s ease-out 3; }
+    #to-bottom .tb-arrow { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,.22); font-size: 12px; animation: tb-bounce 1.4s ease-in-out infinite; }
+    #to-bottom.pulse { animation: tb-in .25s ease-out, tb-pulse 1.6s ease-out 2; }
     @keyframes tb-bounce { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(4px); } }
     @keyframes tb-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-    @keyframes tb-pulse { 0% { box-shadow: 0 0 0 0 rgba(0,160,157,.55), 0 6px 18px rgba(0,0,0,.22); } 100% { box-shadow: 0 0 0 16px rgba(0,160,157,0), 0 6px 18px rgba(0,0,0,.22); } }
+    @keyframes tb-pulse { 0% { box-shadow: 0 0 0 0 rgba(0,160,157,.5), 0 4px 12px rgba(0,0,0,.2); } 100% { box-shadow: 0 0 0 12px rgba(0,160,157,0), 0 4px 12px rgba(0,0,0,.2); } }
     @media (prefers-reduced-motion: reduce) { #to-bottom, #to-bottom .tb-arrow, #to-bottom.pulse { animation: none; } }
     .o_date_sep { display: flex; align-items: center; gap: 10px; margin: 12px 4px 6px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
     .o_date_sep::before, .o_date_sep::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
@@ -396,7 +397,7 @@
         <div id="thread" aria-live="polite">
           <div class="empty-state">Dooro bukaan ku jira liiska si aad u aragto fariimihiisa.</div>
         </div>
-        <button id="to-bottom" class="hidden" type="button" title="Hoos u deg - fariimaha"><span class="tb-arrow">&#8595;</span><span id="to-bottom-label">Fariimaha hoos</span></button>
+        <button id="to-bottom" class="hidden" type="button" title="Hoos u deg - fariimaha"><span class="tb-arrow">&#8595;</span><span id="to-bottom-label">Hoos u eeg</span></button>
         </div>
         <div class="o_composer hidden" id="composer">
           <div class="o_file_chip hidden" id="file-chip"><span id="file-status"></span><button class="o_icon_btn" id="remove-file" type="button" aria-label="Faylka ka saar"><svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -1033,10 +1034,15 @@
       if (has && below > 90) {
         const lim = sa.getBoundingClientRect().bottom - 30;
         const n = [...$('thread').querySelectorAll('.o_message')].filter((m) => m.getBoundingClientRect().top > lim).length;
-        $('to-bottom-label').textContent = n > 0 ? 'Fariimaha hoos (' + n + ')' : 'Hoos u deg';
-        if (b.classList.contains('hidden')) { b.classList.remove('hidden'); b.classList.add('pulse'); setTimeout(() => b.classList.remove('pulse'), 5000); }
-      } else b.classList.add('hidden');
+        $('to-bottom-label').textContent = n > 0 ? 'Hoos u eeg · ' + n + (n === 1 ? ' fariin' : ' fariimood') : 'Hoos u eeg';
+        if (b.classList.contains('hidden') && !tbTimer) tbTimer = setTimeout(() => {   // shows only after 5 s, so it never gets in the way while reading the summary
+          tbTimer = null;
+          const sa2 = $('scroll-area');
+          if (sa2.scrollHeight - sa2.scrollTop - sa2.clientHeight > 90 && selectedNumber) { b.classList.remove('hidden'); b.classList.add('pulse'); setTimeout(() => b.classList.remove('pulse'), 4000); }
+        }, 5000);
+      } else { b.classList.add('hidden'); clearTimeout(tbTimer); tbTimer = null; }
     }
+    let tbTimer = null;
     $('scroll-area').addEventListener('scroll', () => requestAnimationFrame(updateToBottom), { passive: true });
     window.addEventListener('resize', () => requestAnimationFrame(updateToBottom));
     $('to-bottom').addEventListener('click', () => { const sa = $('scroll-area'); sa.scrollTo({ top: sa.scrollHeight, behavior: 'smooth' }); });
