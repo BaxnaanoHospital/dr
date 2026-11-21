@@ -112,22 +112,27 @@
     #app { display: none; width: 100%; height: 100vh; height: 100dvh; flex-direction: column; }
 
     /* Navbar: .o_main_navbar */
-    .o_main_navbar { flex: 0 0 auto; height: 46px; display: flex; align-items: stretch; background: var(--navbar); border-bottom: 1px solid var(--navbar-dark); color: #fff; }
-    .o_nav_item { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 12px; border: 0; background: transparent; color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; text-decoration: none; }
+    .o_main_navbar { flex: 0 0 auto; height: 42px; display: flex; align-items: stretch; background: var(--navbar); border-bottom: 1px solid var(--navbar-dark); color: #fff; }
+    .o_nav_item { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 12px; border: 0; background: transparent; color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; text-decoration: none; }
     .o_nav_item:hover { background: var(--navbar-dark); }
     .o_menu_brand { font-weight: 500; font-size: 14px; padding-left: 10px; }
-    .o_brand_logo { width: 30px; height: 30px; border-radius: 3px; background: #fff; padding: 2px; object-fit: contain; flex: 0 0 auto; }
+    .o_brand_logo { width: 26px; height: 26px; border-radius: 3px; background: #fff; padding: 2px; object-fit: contain; flex: 0 0 auto; }
     .o_menu_sections { display: flex; }
     .o_menu_sections .o_nav_item.active { box-shadow: inset 0 -3px 0 rgba(255, 255, 255, .55); }
-    .o_nav_right { margin-left: auto; display: flex; }
+    .o_nav_right { margin-left: auto; display: flex; align-items: center; min-width: 0; flex-shrink: 1; }
+    .o_nav_right .o_nav_item { padding: 0 8px; font-size: 12px; gap: 5px; }
+    #logout-button .nm { font-size: 12px; }
+    #logout-button .ic { width: 15px; height: 15px; }
+    .o_nav_user .nm { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+    @media (max-width: 1280px) { #logout-button .nm, .bot-status .bs-text { display: none; } }
     .o_nav_user { opacity: .92; }
-    .o_nav_user .o_avatar { width: 24px; height: 24px; font-size: 11px; background: rgba(255, 255, 255, .22); color: #fff; }
+    .o_nav_user .o_avatar { width: 22px; height: 22px; font-size: 10.5px; background: rgba(255, 255, 255, .22); color: #fff; }
 
     /* Control panel: .o_control_panel */
-    .o_control_panel { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding: 6px 16px; background: #fff; border-bottom: 1px solid var(--line-dark); }
+    .o_control_panel { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 4px 16px; background: #fff; border-bottom: 1px solid var(--line-dark); }
     .o_cp_left { display: flex; align-items: center; gap: 8px; min-width: 0; }
     #back-button { display: none; }
-    .breadcrumb { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 17px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; }
+    .breadcrumb { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; }
     .breadcrumb .crumb-root { color: var(--link); cursor: pointer; }
     .breadcrumb .crumb-sep { color: var(--g500); }
     .breadcrumb .crumb-current { overflow: hidden; text-overflow: ellipsis; }
@@ -256,6 +261,18 @@
     @keyframes bs-blink { 50% { opacity: .35; } }
     @media (max-width: 767.98px) { .bot-status .bs-text { display: none; } }
     @media (prefers-reduced-motion: reduce) { .bot-status.off .bs-dot { animation: none; } }
+    /* ready-made messages learned from the doctor's own replies: a tap fills the box, the doctor edits, then sends */
+    .quick-replies { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding: 0 0 8px; scrollbar-width: thin; }
+    .quick-replies:empty { display: none; }
+    .quick-replies::-webkit-scrollbar { height: 4px; }
+    .qr-label { flex: 0 0 auto; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+    .qr-chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; max-width: 280px; padding: 5px 10px; border: 1px solid var(--line-dark); border-radius: 10rem; background: var(--g100); color: var(--text); font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer; }
+    .qr-chip > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+    .qr-chip:hover { border-color: var(--primary); color: var(--primary); background: #fff; }
+    .qr-chip.saved { border-color: #b9e3e2; }
+    .qr-chip.add { border-style: dashed; color: var(--muted); }
+    .qr-chip .qr-x { margin-left: 2px; color: var(--muted); font-size: 13px; line-height: 1; }
+    .qr-chip .qr-x:hover { color: var(--danger); }
     /* Composer: .o_composer */
     .o_composer { flex: 0 0 auto; padding: 10px 16px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: #fff; }
     .o_file_chip { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 4px 6px 4px 10px; border: 1px solid var(--line); background: var(--g100); font-size: 12px; max-width: 100%; }
@@ -411,6 +428,7 @@
         </div>
         <div class="o_composer hidden" id="composer">
           <div class="o_file_chip hidden" id="file-chip"><span id="file-status"></span><button class="o_icon_btn" id="remove-file" type="button" aria-label="Faylka ka saar"><svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+          <div class="quick-replies" id="quick-replies" aria-label="Fariimo diyaarsan"></div>
           <div class="o_composer_box">
             <textarea id="message-input" rows="1" placeholder="Qor fariinta bukaanka…" aria-label="Qoraalka fariinta"></textarea>
             <div class="o_composer_tools">
@@ -596,6 +614,7 @@
       loadPatients();
       startPolling();
       startBotStatus();
+      loadTemplates();
     }
 
     function startPolling() { stopPolling(); pollTimer = window.setInterval(() => { if (!isComposerBusy()) loadPatients(); }, POLL_INTERVAL_MS); }
@@ -1060,6 +1079,48 @@
     }
     function startBotStatus() { clearInterval(botTimer); checkBot(); botTimer = setInterval(checkBot, 60000); }
 
+    // ---------- ready-made messages: learned from THIS doctor's own replies (AI-cleaned, no patient details) + ones he saves ----------
+    let templates = [], learning = false;
+    async function loadTemplates(learn) {
+      if (!token) return;
+      try {
+        const d = await rpc('dr_templates', { p_token: token });
+        templates = (d && d.templates) || [];
+        renderQuickReplies();
+        const old = !d.learned_at || (Date.now() - Date.parse(d.learned_at)) > 12 * 3600e3;
+        if (learn !== false && !learning && (old || Number(d.new_replies) >= 3)) {   // learn again from the doctor's newest replies, in the background
+          learning = true;
+          fetch(`${SUPABASE_URL}/functions/v1/dr-templates`, { method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })
+            .then((r) => r.json()).then((j) => { learning = false; if (j && j.learned != null) loadTemplates(false); }).catch(() => { learning = false; });
+        }
+      } catch (e) { /* keep the last list */ }
+    }
+    function renderQuickReplies() {
+      const box = $('quick-replies'); box.textContent = '';
+      const lab = document.createElement('span'); lab.className = 'qr-label'; lab.textContent = 'Fariimo diyaarsan'; lab.title = 'Waxaa laga bartay jawaabahaaga hore. Riix mid: sanduuqa ayuu galayaa, wax ka beddel, kadib dir.';
+      box.appendChild(lab);
+      for (const t of templates) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'qr-chip' + (t.source === 'saved' ? ' saved' : ''); b.title = t.text;
+        const tx = document.createElement('span'); tx.textContent = t.text; b.appendChild(tx);
+        const x = document.createElement('span'); x.className = 'qr-x'; x.textContent = '×'; x.title = 'Ka saar'; b.appendChild(x);
+        b.addEventListener('click', async (ev) => {
+          if (ev.target === x) { try { await rpc('dr_template_delete', { p_token: token, p_id: t.id }); templates = templates.filter((y) => y.id !== t.id); renderQuickReplies(); } catch (e) { notify(e.message, 'danger'); } return; }
+          const inp = $('message-input'); const cur = inp.value.trim();
+          inp.value = cur ? cur + (/[.!?]$/.test(cur) ? ' ' : '. ') + t.text : t.text;
+          autoGrow(); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+        });
+        box.appendChild(b);
+      }
+      const plus = document.createElement('button'); plus.type = 'button'; plus.className = 'qr-chip add'; plus.textContent = '+ Keydi qoraalka';
+      plus.title = 'Qoraalka sanduuqa ku jira u keydi fariin diyaarsan';
+      plus.addEventListener('click', async () => {
+        const v = $('message-input').value.trim();
+        if (!v) { notify('Marka hore qoraalka ku qor sanduuqa, kadib riix "Keydi".'); return; }
+        try { await rpc('dr_template_save', { p_token: token, p_text: v }); notify('Fariinta waa la keydiyay.'); loadTemplates(false); } catch (e) { notify(e.message, 'danger'); }
+      });
+      box.appendChild(plus);
+      box.scrollLeft = 0;
+    }
     // ↓ button: tells the doctor there is more below (messages under the summary / patient data)
     function updateToBottom() {
       const sa = $('scroll-area'), b = $('to-bottom');
@@ -1171,6 +1232,7 @@
         $('message-input').value = ''; autoGrow();
         clearSelectedFile();
         notify('Fariinta waa la gudbiyay.');
+        loadTemplates();
         await loadPatients();
         await loadThread(true);
       } catch (error) {
