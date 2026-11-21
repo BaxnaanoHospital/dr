@@ -173,19 +173,19 @@
     .o_thread_actions .btn-link .lbl { margin-left: 2px; }
 
     /* Relay banner: .alert-warning */
-    .alert { margin: 10px 16px 0; padding: 9px 12px; border: 1px solid transparent; border-radius: 0; flex: 0 0 auto; }
+    .alert { margin: 0 16px; padding: 11px 14px; line-height: 1.5; border: 1px solid transparent; border-radius: 0; flex: 0 0 auto; }
     .alert-warning { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
     #relay-message::before { content: '📌 Soo koob'; display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
-    #relay-message .rl-row { display: grid; gap: 2px; margin-top: 6px; }
+    #relay-message .rl-row { display: grid; gap: 4px; margin-top: 10px; }
     #relay-message .rl-row:first-of-type { margin-top: 0; }
     #relay-message .rl-tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
     #relay-message .rl-text { white-space: pre-wrap; overflow-wrap: anywhere; }
-    #relay-message .rl-codsi { padding: 7px 10px; background: #fff; border: 1px solid var(--warn-border); }
+    #relay-message .rl-codsi { padding: 9px 12px; background: #fff; border: 1px solid var(--warn-border); }
     #relay-message .rl-codsi .rl-tag { color: var(--danger); }
     #relay-message .rl-codsi .rl-text { font-weight: 500; color: var(--text); font-size: 13.5px; }
 
     /* Clinic sheet: .o_form_sheet */
-    #clinic { flex: 0 0 auto; margin: 10px 16px 0; border: 1px solid var(--line-dark); background: #fff; max-height: 46vh; overflow: auto; }
+    #clinic { flex: 0 0 auto; margin: 0 16px; border: 1px solid var(--line-dark); background: #fff; }
     #clinic summary { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 12px; cursor: pointer; list-style: none; font-weight: 500; background: var(--g100); }
     #clinic summary::-webkit-details-marker { display: none; }
     #clinic[open] summary { border-bottom: 1px solid var(--line); }
@@ -214,10 +214,13 @@
     #clinic .cl-search .form-control { flex: 1; min-width: 0; }
 
     /* Messages: .o_thread_message */
-    #thread { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px 14px; overscroll-behavior: contain; }
+    #scroll-area { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 14px; padding: 14px 0 6px; }
+    #scroll-area > .alert, #scroll-area > #clinic { margin-top: 0; margin-bottom: 0; }
+    #thread { flex: 1 0 auto; padding: 4px 12px 14px; border-top: 1px solid var(--line); }
+    #thread > .empty-state { padding-top: 40px; }
     .o_date_sep { display: flex; align-items: center; gap: 10px; margin: 12px 4px 6px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
     .o_date_sep::before, .o_date_sep::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
-    .o_message { display: flex; gap: 10px; padding: 7px 8px; border-radius: 2px; }
+    .o_message { display: flex; gap: 10px; padding: 9px 8px; border-radius: 2px; }
     .o_message:hover { background: var(--g100); }
     .o_message .o_avatar { width: 36px; height: 36px; }
     .o_message.dr .o_avatar { background: var(--primary); }
@@ -228,7 +231,7 @@
     .o_time { font-size: 11px; color: var(--muted); }
     .o_pending { font-size: 11px; color: var(--warning); }
     .o_message_text { margin-top: 1px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); font-size: 13.5px; }
-    .o_message img, .o_message video { display: block; max-width: min(100%, 420px); max-height: 330px; margin-top: 8px; border: 1px solid var(--line); }
+    .o_message img, .o_message video { display: block; max-width: min(100%, 420px); max-height: 330px; height: auto; object-fit: contain; margin-top: 8px; border: 1px solid var(--line); }
     .audio-box { display: grid; gap: 6px; margin-top: 8px; width: min(100%, 360px); }
     .audio-box audio { width: 100%; height: 40px; }
     .audio-fallback { font-size: 12px; font-weight: 500; color: var(--danger); background: #fde3df; padding: 6px 10px; }
@@ -293,7 +296,8 @@
       .o_thread_header { padding: 6px 10px; min-height: 50px; }
       .o_thread_actions .btn-link .lbl { display: none; }
       .alert, #clinic { margin-left: 10px; margin-right: 10px; }
-      #thread { padding: 8px 6px 12px; }
+      #thread { padding: 4px 6px 12px; }
+      #scroll-area { gap: 10px; padding-top: 10px; }
       .o_message { gap: 8px; padding: 6px; }
       .o_message .o_avatar { width: 32px; height: 32px; font-size: 13px; }
       .o_composer { padding: 8px 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
@@ -377,10 +381,12 @@
             <button class="btn btn-link hidden" id="hide-button" type="button" title="Qari"><svg class="ic" id="hide-icon" viewBox="0 0 24 24"></svg><span class="lbl" id="hide-label">Qari</span></button>
           </div>
         </header>
+        <div id="scroll-area">
         <div id="relay-message" class="alert alert-warning hidden" role="note"></div>
         <details id="clinic" class="hidden"><summary><span class="cl-title">🩺 Xogta bukaanka</span><span class="cl-sum" id="clinic-sum"></span><svg class="ic cl-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></summary><div class="cl-body" id="clinic-body"></div></details>
         <div id="thread" aria-live="polite">
           <div class="empty-state">Dooro bukaan ku jira liiska si aad u aragto fariimihiisa.</div>
+        </div>
         </div>
         <div class="o_composer hidden" id="composer">
           <div class="o_file_chip hidden" id="file-chip"><span id="file-status"></span><button class="o_icon_btn" id="remove-file" type="button" aria-label="Faylka ka saar"><svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -728,7 +734,7 @@
       $('app').classList.add('chatting');
       updateHeader();
       renderPatientList();
-      loadThread(true);
+      loadThread('open');
     }
 
     function goBackToPatients() { $('app').classList.remove('chatting'); }
@@ -900,8 +906,8 @@
       const number = selectedNumber;
       if (!number || !token) return;
       const requestId = ++threadRequestId;
-      const thread = $('thread');
-      const wasAtBottom = thread.scrollTop + thread.clientHeight >= thread.scrollHeight - 45;
+      const thread = $('thread'); const sa = $('scroll-area');
+      const wasAtBottom = sa.scrollTop + sa.clientHeight >= sa.scrollHeight - 45;
       try {
         let messages = await rpc('dr_thread', { p_token: token, p_number: number });
         if (requestId !== threadRequestId || selectedNumber !== number) return;
@@ -960,7 +966,8 @@
           });
         }
         thread.replaceChildren(fragment);
-        if (forceScroll || wasAtBottom) thread.scrollTop = thread.scrollHeight;
+        if (forceScroll === 'open' && !$('relay-message').classList.contains('hidden')) sa.scrollTop = 0;   // a patient waiting for the doctor opens on his summary first
+        else if (forceScroll || wasAtBottom) sa.scrollTop = sa.scrollHeight;
       } catch (error) {
         if (requestId === threadRequestId && !offline) notify(error.message || 'Fariimaha lama soo bandhigi karin.', 'error');
       }
@@ -1007,6 +1014,10 @@
     }
 
     // ---- composer ----
+    // a photo that finishes loading after the scroll keeps the newest message in view
+    document.getElementById('scroll-area').addEventListener('load', (e) => {
+      if (e.target && e.target.tagName === 'IMG') { const sa = $('scroll-area'); if (sa.scrollHeight - sa.scrollTop - sa.clientHeight < e.target.clientHeight + 120) sa.scrollTop = sa.scrollHeight; }
+    }, true);
     function autoGrow() { const t = $('message-input'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 170) + 'px'; }
     function clearSelectedFile() {
       selectedFile = null;
