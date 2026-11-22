@@ -243,6 +243,8 @@
     .o_message_meta { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
     .o_author { font-weight: 500; color: var(--text); }
     .o_message.dr .o_author { color: var(--link); }
+    .o_message.bot .o_author { color: var(--muted, #6b7280); }
+    .o_message.bot .o_message_text { opacity: .85; font-style: italic; }
     .o_time { font-size: 11px; color: var(--muted); }
     .o_pending { font-size: 11px; color: var(--warning); }
     .o_message_text { margin-top: 1px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); font-size: 13.5px; }
@@ -973,7 +975,7 @@
         if (clinicFor !== number) { clinicFor = number; loadClinic(number); }
 
         const chatter = /^\s*(asc|salaan|salaam|wcs|hi|hello|hey|wll|wllo|waryaa|haye|hayee|ok|okay|haa|waa ok|waa hagaag|mahadsanid|thanks|thank you|aamiin|inshaallah)[\s.!?]*$/i;
-        messages = messages.filter((m) => m.dir === 'out' || (m.dir === 'in' && (m.file_url || /^🎤/.test(m.text || '') || ((m.text || '').replace(/\W/g, '').length >= 4 && !chatter.test(m.text || '')))));
+        messages = messages.filter((m) => m.dir === 'out' || m.dir === 'bot' || (m.dir === 'in' && (m.file_url || /^🎤/.test(m.text || '') || ((m.text || '').replace(/\W/g, '').length >= 4 && !chatter.test(m.text || '')))));
         const sig = number + '|' + messages.map((m) => (m.id || '') + ':' + (m.at || '') + ':' + String(m.text || '').length + ':' + (m.file_url || '')).join(',');
         if (!forceScroll && sig === lastThreadSig) return;
         if (!forceScroll && [...thread.querySelectorAll('audio,video')].some((m) => !m.paused && !m.ended)) return;   // never rebuild while a voice note is playing
@@ -991,15 +993,17 @@
             const valid = !Number.isNaN(when.getTime());
             const day = valid ? dayLabel(when) : '';
             if (day && day !== lastDay) { fragment.append(el('div', 'o_date_sep', day)); lastDay = day; }
-            const isDr = message.dir === 'out';
-            const row = el('article', 'o_message' + (isDr ? ' dr' : ''));
-            const av = el('span', 'o_avatar', isDr ? 'Dr' : (patientName.trim()[0] || '#'));
+            const isBot = message.dir === 'bot';
+            const isDr = message.dir === 'out' || isBot;
+            const row = el('article', 'o_message' + (isDr ? ' dr' : '') + (isBot ? ' bot' : ''));
+            const av = el('span', 'o_avatar', isBot ? '🤖' : isDr ? 'Dr' : (patientName.trim()[0] || '#'));
             if (!isDr) av.style.background = colorFor(patientName);
+            if (isBot) av.style.background = '#8a8f98';
             const core = el('div', 'o_message_core');
             const meta = el('div', 'o_message_meta');
-            meta.append(el('span', 'o_author', isDr ? drName : patientName));
+            meta.append(el('span', 'o_author', isBot ? 'Bot (kaaliyaha)' : isDr ? drName : patientName));
             if (valid) meta.append(el('span', 'o_time', timeLabel(when)));
-            if (isDr && message.sent === false) meta.append(el('span', 'o_pending', '⏳ sugaya dirista'));
+            if (isDr && !isBot && message.sent === false) meta.append(el('span', 'o_pending', '⏳ sugaya dirista'));
             core.append(meta);
             if (message.text) core.append(el('div', 'o_message_text', String(message.text)));
             const media = buildMedia(message);
